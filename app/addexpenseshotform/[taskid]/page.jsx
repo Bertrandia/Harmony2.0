@@ -122,6 +122,7 @@ const addexpensesPage = () => {
       let extractedText = "";
       let uniqueExpenseId = "";
       const file = formData.invoiceFile;
+      let isPdf = {};
 
       if (file && isInvoiceAvailable === "yes") {
         const date = formData?.invoiceDate?.toDate?.();
@@ -147,10 +148,16 @@ const addexpensesPage = () => {
           // Convert to base64 for image
           const arrayBuffer = await file.arrayBuffer();
           base64String = encode(arrayBuffer);
+          isPdf = {
+            isPdf: false,
+          };
         } else if (extension === "pdf") {
           // Extract text from PDF
           const formDataPDF = new FormData();
           formDataPDF.append("file", file);
+          isPdf = {
+            isPdf: true,
+          };
 
           const response = await axios.post(
             "https://pdf-to-text-api-632406467525.us-central1.run.app/extract-text",
@@ -183,16 +190,6 @@ const addexpensesPage = () => {
 
       // Build invoice fields based on availability
       let invoicedatarelatedFields = {};
-
-      let ominidetails = {};
-      if (
-        formData?.paymentMode === "OmniCard" ||
-        formData?.paymentMode === "OmniCardUPI"
-      ) {
-        ominidetails = {
-          omniTransactionId: formData?.omniTransactionId,
-        };
-      }
 
       if (isInvoiceAvailable === "yes") {
         invoicedatarelatedFields = {
@@ -238,17 +235,18 @@ const addexpensesPage = () => {
         lmRef,
         lmName: userDetails?.display_name || "",
         paymentTransactionDate: formData.paymentDate,
+        transctionId: formData.transactionId,
         isExpenseAddedBySpecialLM: false,
         newPatronName: patron?.newPatronName || "",
         newPatronID: patron?.newPatronID || "",
         approvalRef,
         ...invoicedatarelatedFields,
-        ...ominidetails,
+        ...isPdf,
       };
 
-      console.log(Finaldetails);
+     
 
-      // await addDoc(collection(db, "LMInvoices"), Finaldetails);
+      await addDoc(collection(db, "LMInvoices"), Finaldetails);
 
       const budgetLeft = parseFloat(formData.budgetLeft);
       const budgetSpend = parseFloat(formData.budgetSpend);
@@ -271,10 +269,10 @@ const addexpensesPage = () => {
         "advanceApprovalFinance",
         formData?.approvalDocId
       );
-
-      // await updateDoc(approvalDocRef, updateadvanceApprovalFinance);
-      console.log(updateadvanceApprovalFinance);
-      // setInvoiceSuccess(true);
+    // console.log(updateadvanceApprovalFinance);
+      await updateDoc(approvalDocRef, updateadvanceApprovalFinance);
+     
+      setInvoiceSuccess(true);
 
       await fetchTaskAndPatron();
     } catch (error) {
@@ -288,6 +286,19 @@ const addexpensesPage = () => {
     selectedVendor?.vendorName.toLowerCase() === "local vendor";
 
   if (loading) return <div className="p-4 text-center">Loading...</div>;
+
+ if (["To be Started", "Created"].includes(task.taskStatusCategory)) {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <div className="p-6 bg-yellow-100 border border-yellow-300 rounded-xl text-center max-w-lg">
+        <h1 className="text-red-600 font-semibold text-lg">
+          The task is in "{task.taskStatusCategory}" mode. <br />
+          You are not supposed to add an expense yet.
+        </h1>
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="max-w-3xl mx-auto p-8 bg-gradient-to-br from-white via-gray-50 to-stone-50 rounded-3xl shadow-lg border border-gray-100 space-y-8">
@@ -496,13 +507,17 @@ const addexpensesPage = () => {
               className="w-5 h-5 text-amber-500 border-gray-300 rounded focus:ring-amber-400"
             />
             <span className="text-gray-700">
-              I confirm to Terms & Conditions
+              I confirm that this expense does not have any official supporting
+              bill/invoice, and it is not from listed vendors such as Amazon,
+              Blinkit, etc. I acknowledge and accept this cash memo as valid for
+              record purposes ..
             </span>
           </label>
 
           {isCashMemoConfirmed && (
             <div className="mt-6">
               <CashMemoForm
+                selectedVendor={selectedVendor}
                 userDetails={userDetails}
                 patron={patron}
                 task={task}

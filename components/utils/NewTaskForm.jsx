@@ -2,6 +2,7 @@
 import { db } from "@/firebasedata/config";
 import { collection, getDocs } from "firebase/firestore";
 import React, { useState, useEffect } from "react";
+import { Timestamp } from "firebase/firestore";
 
 export default function NewTaskForm({
   index,
@@ -76,18 +77,7 @@ export default function NewTaskForm({
       tag.subCategoryRef?.id === subCategory?.id
   );
 
-  const formatDueDate = (isoDate) => {
-    const dateObj = new Date(isoDate);
-    return dateObj.toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      timeZoneName: "short",
-    });
-  };
+ 
 
   const handleSubmit = () => {
     if (
@@ -112,7 +102,7 @@ export default function NewTaskForm({
         aiCreatedCategory: initialData?.category || "",
         aiCreatedSubCategory: initialData?.sub_category || "",
         aiCreatedCategoryTag: initialData?.category_tag || "",
-        taskDueDate: formatDueDate(dueDate),
+        taskDueDate: Timestamp.fromDate(new Date(dueDate)),
         taskCategory: category?.categoryName || "",
         taskSubCategory: subCategory?.subCategoryName || "",
         categoryTag: categoryTag?.categoryTagName || "",
@@ -230,7 +220,7 @@ export default function NewTaskForm({
         </span>
       </label>
       <input
-        type="datetime-local"
+        type="date"
         className="w-full px-3 py-2 border rounded-lg bg-white"
         value={dueDate}
         onChange={(e) => setDueDate(e.target.value)}

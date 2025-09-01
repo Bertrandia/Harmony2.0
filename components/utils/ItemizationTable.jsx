@@ -101,6 +101,9 @@ const ItemizationTable = ({ items = [], onSubmit }) => {
       }
     }
 
+    
+
+
     setError("");
     onSubmit(localItems); // ✅ only send final data
   };

@@ -127,14 +127,15 @@ const Page = () => {
 
               {/* Button Row */}
               <div className="flex justify-end">
-                <button
+                {/* <button
+                 disabled={true}
                   onClick={() =>
                     router.push(`/addexpenselongform/${invoice.id}`)
                   }
                   className="px-5 py-2 bg-gray-600 text-orange-600 text-sm rounded-lg shadow hover:bg-gray-700"
                 >
                   Add Expense
-                </button>
+                </button> */}
               </div>
             </div>
           ))}

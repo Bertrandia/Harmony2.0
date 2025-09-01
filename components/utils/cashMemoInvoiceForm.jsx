@@ -9,6 +9,7 @@ export default function CashMemoInvoiceForm({
   cashMemoInvoicesuccess,
   onDone,
   onSubmit,
+  itemstotalAmount
 }) {
   const [paymentDate, setPaymentDate] = useState("");
   const [paymentMode, setPaymentMode] = useState("");
@@ -18,13 +19,13 @@ export default function CashMemoInvoiceForm({
   const [invoiceDate, setInvoiceDate] = useState("");
   const [invoiceAmount, setInvoiceAmount] = useState("");
   const [invoiceDescription, setInvoiceDescription] = useState("");
-  const [omniTransactionId, setOmniTransactionId] = useState("");
+  const [transactionId, setTransactionId] = useState("");
   const [formErrors, setFormErrors] = useState({});
 
   const approvalDocData = approvalIds.find(
     (doc) => doc.ApprovalID === approvalId
   );
-
+  
   useEffect(() => {
     resetForm();
   }, []);
@@ -32,7 +33,7 @@ export default function CashMemoInvoiceForm({
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
 
-  // ⛔ Prevent double submit
+ 
   if (submitting){
     console("not allowed")
     return
@@ -41,31 +42,18 @@ export default function CashMemoInvoiceForm({
     const budgetLeft = parseFloat(approvalDocData?.budgetLeft || 0);
     const budgetSpend = parseFloat(approvalDocData?.budgetSpent || 0);
 
-    const invoiceAmountNum = parseFloat(invoiceAmount);
-    if (invoiceAmountNum > budgetLeft)
+      
+    if (itemstotalAmount > budgetLeft)
       errors.invoiceAmount = `Expense amount exceeds available budget. Budget left: ₹${budgetLeft}`;
     if (!paymentDate) errors.paymentDate = "Payment Date is required";
     if (!paymentMode) errors.paymentMode = "Payment Mode is required";
 
-    if (
-      (paymentMode === "OmniCard" || paymentMode === "OmniCardUPI") &&
-      !omniTransactionId
-    ) {
-      errors.omniTransactionId = "Omni Transaction ID is required";
-    }
+    if(!transactionId) errors.transactionId = "Transcation Id is required";
 
     if (!billingModel) errors.billingModel = "Billing Model is required";
     if (!approvalId) errors.approvalId = "Approval ID is required";
 
-    const numberRegex = /^\d+(\.\d{1,2})?$/;
-    if (!invoiceAmount) {
-      errors.invoiceAmount = "Invoice Amount is required";
-    } else if (!numberRegex.test(invoiceAmount)) {
-      errors.invoiceAmount =
-        "Invoice Amount must be a valid number (e.g., 2500.50)";
-    } else if (parseFloat(invoiceAmount) <= 0) {
-      errors.invoiceAmount = "Invoice Amount must be greater than 0";
-    }
+    
 
     if (!invoiceDescription)
       errors.invoiceDescription = "Invoice Description is required";
@@ -83,16 +71,14 @@ export default function CashMemoInvoiceForm({
         billingModel,
         approvalId,
         approvalDocId,
-        invoiceAmount: parseFloat(invoiceAmount).toFixed(2),
+        invoiceAmount:itemstotalAmount,
         invoiceDescription,
-        omniTransactionId:
-          paymentMode === "OmniCard" || paymentMode === "OmniCardUPI"
-            ? omniTransactionId
-            : null,
+        transactionId,
         budgetLeft,
         budgetSpend,
       };
 
+      
       onSubmit(formData);
       // resetForm();
     }
@@ -107,7 +93,7 @@ export default function CashMemoInvoiceForm({
     setInvoiceDate("");
     setInvoiceAmount("");
     setInvoiceDescription("");
-    setOmniTransactionId("");
+    setTransactionId("");
     setFormErrors({});
   };
 
@@ -149,19 +135,19 @@ export default function CashMemoInvoiceForm({
           </select>
         </div>
 
-        {(paymentMode === "OmniCard" || paymentMode === "OmniCardUPI") && (
+     
           <div>
             <label className="block mb-1 text-sm font-semibold text-gray-700">
-              Omni Transaction ID
+            Transaction ID
             </label>
             <input
               type="text"
-              value={omniTransactionId}
-              onChange={(e) => setOmniTransactionId(e.target.value)}
+              value={transactionId}
+              onChange={(e) => setTransactionId(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
           </div>
-        )}
+       
 
         <div>
           <label className="block mb-1 text-sm font-semibold text-gray-700">
@@ -197,8 +183,9 @@ export default function CashMemoInvoiceForm({
           </label>
           <input
             type="text"
-            value={invoiceAmount}
-            onChange={(e) => setInvoiceAmount(e.target.value)}
+            readOnly={true}
+            value={itemstotalAmount}
+           
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
         </div>

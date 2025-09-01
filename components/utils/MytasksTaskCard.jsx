@@ -97,10 +97,7 @@ const MytasksTaskCard = ({ task }) => {
   const statusColor = getStatusColor(task.taskStatusCategory || task.status);
 
   return (
-    <div
-      className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-all duration-200 group"
-      onClick={() => router.push(`/taskfulldetails/${task?.id}`)}
-    >
+    <div className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-all duration-200 group">
       <div className="flex items-start justify-between">
         <div className="flex items-start space-x-4 flex-1">
           <div className={`p-2 rounded-full ${statusColor.bg}`}>
@@ -112,6 +109,11 @@ const MytasksTaskCard = ({ task }) => {
               <h3 className="text-lg font-semibold text-card-foreground group-hover:text-primary transition-colors">
                 {task?.taskInput || "No Task Input"}
               </h3>
+            </div>
+            <div className="flex items-center gap-3 mb-2">
+              <h6 className="text-l font-semibold text-card-foreground group-hover:text-primary transition-colors">
+                PATRON NAME :{task?.partonName || "N/A"}
+              </h6>
             </div>
 
             <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
@@ -148,16 +150,41 @@ const MytasksTaskCard = ({ task }) => {
               </Badge>
             </div>
 
-            {/* Add Expense Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent parent card click
-                router.push(`/addexpenseshotform/${task?.id}`);
-              }}
-              className="mt-2 text-xs px-3 py-1.5 rounded-md font-medium text-white bg-orange-500 hover:bg-orange-600 transition-colors"
-            >
-              + Add Expense
-            </button>
+            {/* Buttons */}
+            <div className="flex gap-2">
+              {/* Edit Task Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent parent card click
+                  router.push(`/taskfulldetails/${task?.id}`);
+                }}
+                className="text-xs px-3 py-1.5 rounded-md font-medium text-white bg-gray-500 hover:bg-gray-600 transition-colors"
+              >
+                Edit Task
+              </button>
+
+              {/* Task Comments Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent parent card click
+                  router.push(`/taskcomments/${task?.id}`);
+                }}
+                className="text-xs px-3 py-1.5 rounded-md font-medium text-white bg-gray-500 hover:bg-gray-600 transition-colors"
+              >
+                View Comments
+              </button>
+
+              {/* Optional Add Expense Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent parent card click
+                  router.push(`/addexpenseshotform/${task?.id}`);
+                }}
+                className="text-xs px-3 py-1.5 rounded-md font-medium text-white bg-gray-500 hover:bg-gray-600 transition-colors"
+              >
+                + Add Expense
+              </button>
+            </div>
           </div>
         </div>
       </div>

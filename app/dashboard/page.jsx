@@ -5,6 +5,9 @@ import ProtectedLayout from "../../components/ProtectedLayout";
 import { LMPatronProvider, LMPatronContext } from "../context/LmPatronsContext";
 import { db } from "../../firebasedata/config";
 import { useGeminiGenerateTask } from "../../components/hooks/useGeminiGenerateTask";
+import { useExtraOrdinaryScore } from "../../components/hooks/useExtraOrdinaryScore";
+import { useValueScore } from "../../components/hooks/useValueScore";
+
 import GeneratedTaskFormModal from "../../components/utils/GeneratedTaskFormModal";
 import FullPageLoader from "../../components/utils/FullPageLoader";
 import OnlineToggle from "../../components/utils/OnlineToggle";
@@ -33,6 +36,9 @@ function DashboardContent({ userDetails }) {
   const [draggedTask, setDraggedTask] = useState(null);
   const { isLoading, aiTasks, error, generateTasks } =
     useGeminiGenerateTask(gapi);
+  const { extraOrdinaryScore, generateExtraOrdinaryScore } =
+    useExtraOrdinaryScore(gapi);
+  const { valueScore, generateValueScore } = useValueScore(gapi);
   const [showModal, setShowModal] = useState(false);
   const [aiTaskQueue, setAiTaskQueue] = useState([]);
   const [currentDraggedTask, setCurrentDraggedTask] = useState(null);
@@ -41,6 +47,10 @@ function DashboardContent({ userDetails }) {
   const [note, setNote] = useState("");
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [pendingStatusUpdate, setPendingStatusUpdate] = useState(null);
+  const [aiScoringLoading, setAiScoringLoading] = useState(false);
+
+  const [extraOrdinaryScoreOrValueScore, setExtraOrdinaryScoreOrValueScore] =
+    useState(null);
 
   useEffect(() => {
     if (!lmpatrons?.length) return;
@@ -162,8 +172,34 @@ function DashboardContent({ userDetails }) {
   }, [filteredTasks]);
 
   const handleNoteSubmit = async () => {
-    if(note.length === 0) return;
+    if (note.length === 0) return;
     if (!pendingStatusUpdate || !draggedTask) return;
+    if (!draggedTask.taskDueDate) {
+      return;
+    }
+
+    function checkIfTaskDelayed(taskDueDate) {
+      if (!(taskDueDate instanceof Timestamp)) return false; // safety check
+
+      const dueDate = taskDueDate.toDate(); // convert Firestore Timestamp → JS Date
+      const now = new Date();
+
+      return now > dueDate;
+    }
+    const IsDelayed = checkIfTaskDelayed(draggedTask.taskDueDate);
+
+    let scoredoc = {};
+    if (extraOrdinaryScoreOrValueScore.isExtraodinary == true) {
+      scoredoc = {
+        extraOrdinaryScore:
+          extraOrdinaryScoreOrValueScore?.extraOrdinaryScore || 5,
+      };
+    }
+    if (extraOrdinaryScoreOrValueScore.isValue == true) {
+      scoredoc = {
+        valueScore: extraOrdinaryScoreOrValueScore?.valueScore || 15,
+      };
+    }
 
     try {
       const docRef = doc(db, "createTaskCollection", draggedTask.id);
@@ -176,13 +212,15 @@ function DashboardContent({ userDetails }) {
         [`${statusLowerCaseName}At`]: Timestamp.now(),
         [`${statusLowerCaseName}By`]: userDetails?.email,
         lastComment: note,
+        isDelayed: IsDelayed,
+        ...scoredoc,
       });
 
       const updatedDocSnap = await getDoc(docRef);
 
       if (updatedDocSnap.exists()) {
         const commentDocRef = collection(docRef, "commentsThread");
-        const commentDoc={
+        const commentDoc = {
           comment_text: note,
           isTaskUpdated: true,
           commentedBy: userDetails?.email,
@@ -190,14 +228,11 @@ function DashboardContent({ userDetails }) {
           comment_owner_name: userDetails?.display_name || userDetails?.email,
           comment_owner_img: userDetails?.photo_url || "",
           commentDate: Timestamp.now(),
-          isUpdate: true,   
-          taskStatusCategory:pendingStatusUpdate,
+          isUpdate: true,
+          taskStatusCategory: pendingStatusUpdate,
           taskRef: docRef,
         };
-         await addDoc(commentDocRef, commentDoc);
-        
-
-        
+        await addDoc(commentDocRef, commentDoc);
       } else {
         console.error("Document not found after update.");
       }
@@ -209,15 +244,16 @@ function DashboardContent({ userDetails }) {
             : task
         )
       );
+      setDraggedTask(null);
+      setPendingStatusUpdate(null);
+      setShowNoteModal(false);
+      setNote("");
+      setExtraOrdinaryScoreOrValueScore(null);
     } catch (error) {
       console.error("Error updating task status:", error.message);
     }
 
     // Cleanup
-    setDraggedTask(null);
-    setPendingStatusUpdate(null);
-    setShowNoteModal(false);
-    setNote("");
   };
 
   const handleNoteCancel = () => {
@@ -225,6 +261,7 @@ function DashboardContent({ userDetails }) {
     setPendingStatusUpdate(null);
     setNote("");
     setDraggedTask(null);
+    setExtraOrdinaryScoreOrValueScore(null);
   };
 
   const handleDrop = async (newStatus) => {
@@ -232,6 +269,16 @@ function DashboardContent({ userDetails }) {
     if (newStatus === "Created") {
       setWarningMessage(
         "⚠️ You cannot change the task back to Created after it’s set to In Process, To Be Started, or Completed."
+      );
+      setShowWarning(true);
+      return;
+    }
+    if (
+      newStatus === "Completed" &&
+      draggedTask.taskStatusCategory === "To be Started"
+    ) {
+      setWarningMessage(
+        "⚠️ You cannot change the task  To be Started To Completed."
       );
       setShowWarning(true);
       return;
@@ -247,6 +294,37 @@ function DashboardContent({ userDetails }) {
       );
       setShowWarning(true);
       return;
+    }
+
+    setAiScoringLoading(true);
+
+    try {
+      if (
+        draggedTask.taskStatusCategory === "To be Started" &&
+        newStatus === "In Process"
+      ) {
+        const score = await generateExtraOrdinaryScore(draggedTask);
+        setExtraOrdinaryScoreOrValueScore({
+          extraOrdinaryScore: score,
+          isExtraodinary: true,
+        });
+      }
+
+      if (
+        draggedTask.taskStatusCategory === "In Process" &&
+        newStatus === "Completed"
+      ) {
+        const score = await generateValueScore(draggedTask);
+        setExtraOrdinaryScoreOrValueScore({
+          valueScore: score,
+          isValue: true,
+        });
+      }
+    } catch (err) {
+      console.error("AI Scoring Error:", err);
+    } finally {
+      // ✅ Always hide loader after scoring is done
+      setAiScoringLoading(false);
     }
 
     if (draggedTask.taskInput && draggedTask.taskStatusCategory === "Created") {
@@ -270,14 +348,104 @@ function DashboardContent({ userDetails }) {
     setShowNoteModal(true);
   };
 
+  const HandelGenerateTaskModelCancel = () => {
+    setShowModal(false);
+    setAiTaskQueue([]);
+    setCurrentDraggedTask(null);
+  };
+  const HandelGenerateTaskModelSubmit = async (
+    formData,
+    index,
+    setSubmissionStatus,
+    markFirstSubmitted
+  ) => {
+    try {
+      const patrondata = lmpatrons.filter(
+        (p) => p.id == draggedTask?.patronRef?.id
+      );
+
+      if (!patrondata || patrondata.length === 0) {
+        throw new Error("Patron not found");
+      }
+
+      const taskId = generateTaskId(
+        formData.taskCategory,
+        patrondata[0].newPatronName,
+        formData.taskSubCategory
+      );
+
+      const baseTaskFields = {
+        backupLmRef: patrondata[0].backupLmRef || "",
+        backupLmName: patrondata[0].backupLmName || "",
+        isAdminApproved: false,
+        isCockpitTaskCreated: false,
+        isCreatedBySpecialLM: false,
+        isCuratorTask: false,
+        isDelayed: false,
+        lastComment: "To be Started",
+        newPatronID: patrondata[0].newPatronID || "",
+        newPatronName: patrondata[0].newPatronName || "",
+        patronAddress:
+          patrondata[0].addressLine1 +
+            patrondata[0].addressLine2 +
+            patrondata[0].landmark +
+            patrondata[0].city +
+            patrondata[0].landmark +
+            patrondata[0].state +
+            patrondata[0].pinCode || "",
+        patronCity: patrondata[0].city || "",
+        taskOwner: userDetails?.display_name || "",
+        billingModel: "Billable",
+        taskID: taskId,
+        tobeStartedAt: Timestamp.now(),
+        tobeStartedBy: userDetails?.email,
+      };
+
+      if (index === 0) {
+        const enrichedFormData = {
+          ...formData,
+          ...baseTaskFields,
+        };
+        const docRef = doc(db, "createTaskCollection", draggedTask.id);
+        await updateDoc(docRef, enrichedFormData);
+        setTasks((prev) =>
+          prev.map((task) =>
+            task.id === draggedTask.id ? { ...task, ...enrichedFormData } : task
+          )
+        );
+        setSubmissionStatus((prev) => ({ ...prev, [index]: "success" }));
+        markFirstSubmitted?.();
+      } else {
+        const { id, patronId1, ...restDraggedTask } = draggedTask;
+        const newTaskData = {
+          ...restDraggedTask,
+          ...formData,
+          ...baseTaskFields,
+        };
+        const docRef = await addDoc(
+          collection(db, "createTaskCollection"),
+          newTaskData
+        );
+        setTasks((prev) => [...prev, { id: docRef.id, ...newTaskData }]);
+        setSubmissionStatus((prev) => ({ ...prev, [index]: "success" }));
+      }
+    } catch (error) {
+      console.error("Error in form submission:", error.message);
+      setSubmissionStatus((prev) => ({ ...prev, [index]: "error" }));
+    }
+  };
+
   return (
     <div className="p-6">
-      {isLoading && <FullPageLoader />}
+      {(isLoading || aiScoringLoading) && <FullPageLoader />}
+
+      <div className="fixed top-4 right-4 z-50">
+        <OnlineToggle userId={userDetails?.id} />
+      </div>
 
       <div className="flex items-center mb-4">
         <h1 className="text-2xl font-semibold">
           Welcome: <span className="text-orange-600">{displayedName}</span>
-          <OnlineToggle userId={userDetails?.id} />
         </h1>
       </div>
 
@@ -311,7 +479,7 @@ function DashboardContent({ userDetails }) {
                 ? "bg-orange-50 border-l-4 border-orange-400"
                 : status === "Created"
                 ? "bg-blue-50 border-l-4 border-blue-500"
-                 : status === "To be Started"
+                : status === "To be Started"
                 ? "bg-yellow-50 border-l-4 border-yellow-500"
                 : status === "To be Started"
                 ? "bg-blue-50 border-l-4 border-blue-500"
@@ -343,94 +511,8 @@ function DashboardContent({ userDetails }) {
         isOpen={showModal}
         aiTasks={aiTaskQueue}
         draggedTask={currentDraggedTask}
-        onClose={() => {
-          setShowModal(false);
-          setAiTaskQueue([]);
-          setCurrentDraggedTask(null);
-        }}
-        onFormSubmit={async (
-          formData,
-          index,
-          setSubmissionStatus,
-          markFirstSubmitted
-        ) => {
-          try {
-            const patrondata = lmpatrons.filter(
-              (p) => p.id == draggedTask?.patronRef?.id
-            );
-
-            if (!patrondata || patrondata.length === 0) {
-              throw new Error("Patron not found");
-            }
-
-            const taskId = generateTaskId(
-              formData.taskCategory,
-              patrondata[0].newPatronName,
-              formData.taskSubCategory
-            );
-
-            const baseTaskFields = {
-              backupLmRef: patrondata[0].backupLmRef || "",
-              backupLmName: patrondata[0].backupLmName || "",
-              isAdminApproved: false,
-              isCockpitTaskCreated: false,
-              isCreatedBySpecialLM: false,
-              isCuratorTask: false,
-              isDelayed: false,
-              lastComment: "To be Started",
-              newPatronID: patrondata[0].newPatronID || "",
-              newPatronName: patrondata[0].newPatronName || "",
-              patronAddress:
-                patrondata[0].addressLine1 +
-                  patrondata[0].addressLine2 +
-                  patrondata[0].landmark +
-                  patrondata[0].city +
-                  patrondata[0].landmark +
-                  patrondata[0].state +
-                  patrondata[0].pinCode || "",
-              patronCity: patrondata[0].city || "",
-              taskOwner: userDetails?.display_name || "",
-              billingModel: "Billable",
-              taskID: taskId,
-              tobeStartedAt: Timestamp.now(),
-              tobeStartedBy: userDetails?.email,
-            };
-
-            if (index === 0) {
-              const enrichedFormData = {
-                ...formData,
-                ...baseTaskFields,
-              };
-              const docRef = doc(db, "createTaskCollection", draggedTask.id);
-              await updateDoc(docRef, enrichedFormData);
-              setTasks((prev) =>
-                prev.map((task) =>
-                  task.id === draggedTask.id
-                    ? { ...task, ...enrichedFormData }
-                    : task
-                )
-              );
-              setSubmissionStatus((prev) => ({ ...prev, [index]: "success" }));
-              markFirstSubmitted?.();
-            } else {
-              const { id, patronId1, ...restDraggedTask } = draggedTask;
-              const newTaskData = {
-                ...restDraggedTask,
-                ...formData,
-                ...baseTaskFields,
-              };
-              const docRef = await addDoc(
-                collection(db, "createTaskCollection"),
-                newTaskData
-              );
-              setTasks((prev) => [...prev, { id: docRef.id, ...newTaskData }]);
-              setSubmissionStatus((prev) => ({ ...prev, [index]: "success" }));
-            }
-          } catch (error) {
-            console.error("Error in form submission:", error.message);
-            setSubmissionStatus((prev) => ({ ...prev, [index]: "error" }));
-          }
-        }}
+        onClose={HandelGenerateTaskModelCancel}
+        onFormSubmit={HandelGenerateTaskModelSubmit}
       />
       {showWarning && (
         <div className="fixed top-5 right-5 z-50 w-72 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded-lg shadow-md p-4">

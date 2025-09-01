@@ -18,12 +18,12 @@ const CashMemoTable = ({ items = [] }) => {
         <tbody>
           {items.map((row, idx) => (
             <tr key={idx} className="odd:bg-white even:bg-gray-50">
-              <td className="border p-2">{row.itemName || ""}</td>
-              <td className="border p-2">{row.itemDescription || ""}</td>
-              <td className="border p-2 text-center">{row.unit || ""}</td>
-              <td className="border p-2 text-center">{row.rate || 0}</td>
-              <td className="border p-2 text-center">{row.quantity || 0}</td>
-              <td className="border p-2 text-center">{row.totalAmount || 0}</td>
+              <td className="border p-2">{row?.itemName || ""}</td>
+              <td className="border p-2">{row?.itemDescription || ""}</td>
+              <td className="border p-2 text-center">{row?.itemUnits || ""}</td>
+              <td className="border p-2 text-center">{row?.itemRate || 0}</td>
+              <td className="border p-2 text-center">{row?.itemQuantity || 0}</td>
+              <td className="border p-2 text-center">{row.itemTotal|| 0}</td>
             </tr>
           ))}
         </tbody>

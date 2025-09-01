@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   Menu,
   X,
-  Moon,
   Sun,
   MessageSquare,
 } from "lucide-react";
@@ -23,6 +22,11 @@ const navigationItems = [
   {
     name: "All-Lm-Invoices",
     href: "/allLMInvoicesList",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "MY-Patrons",
+    href: "/mypatrons",
     icon: LayoutDashboard,
   },
 ];
@@ -39,7 +43,7 @@ export function Sidebar({ children }) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile menu button */}
+      {/* Mobile top bar */}
       <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-border bg-background px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8 lg:hidden">
         <button
           type="button"
@@ -54,27 +58,18 @@ export function Sidebar({ children }) {
           <div className="flex items-center gap-x-4">
             <h1 className="text-xl font-semibold text-foreground">Harmony</h1>
           </div>
-          <div className="ml-auto flex items-center gap-x-4">
-            <button
-              onClick={toggleTheme}
-              className="rounded-md p-2 text-foreground hover:bg-accent transition-colors"
-            >
-              {theme === "dark" ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* Static sidebar for desktop */}
+      {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-border bg-background px-6 pb-4">
+        <div className="flex grow flex-col overflow-y-auto border-r border-border bg-background px-6 pb-4">
+          {/* Top section */}
           <div className="flex h-16 shrink-0 items-center justify-between">
             <h1 className="text-xl font-semibold text-foreground">HARMONY</h1>
           </div>
+
+          {/* Navigation links */}
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>
@@ -104,21 +99,21 @@ export function Sidebar({ children }) {
                       </li>
                     );
                   })}
-                  <li>
-                    <button
-                      onClick={() => {
-                        logout();
-                      }}
-                      className="w-full text-left group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
-                    >
-                      <LogIn className="h-5 w-5 shrink-0 text-muted-foreground group-hover:text-foreground" />
-                      Logout
-                    </button>
-                  </li>
                 </ul>
               </li>
             </ul>
           </nav>
+
+          {/* Logout button fixed at bottom */}
+          <div className="mt-auto pt-4 border-t border-border">
+            <button
+              onClick={logout}
+              className="w-full text-left group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+            >
+              <LogIn className="h-5 w-5 shrink-0 text-muted-foreground group-hover:text-foreground" />
+              Logout
+            </button>
+          </div>
         </div>
       </div>
 
@@ -140,11 +135,11 @@ export function Sidebar({ children }) {
                 <X className="h-6 w-6 text-foreground" aria-hidden="true" />
               </button>
             </div>
-            <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-background px-6 pb-4 ring-1 ring-border">
+            <div className="flex grow flex-col bg-background px-6 pb-4 ring-1 ring-border">
               <div className="flex h-16 shrink-0 items-center">
                 <h1 className="text-xl font-semibold text-foreground">NOC</h1>
               </div>
-              <nav className="flex flex-1 flex-col">
+              <nav className="flex flex-1 flex-col overflow-y-auto">
                 <ul role="list" className="flex flex-1 flex-col gap-y-7">
                   <li>
                     <ul role="list" className="-mx-2 space-y-1">
@@ -174,22 +169,24 @@ export function Sidebar({ children }) {
                           </li>
                         );
                       })}
-                      <li>
-                        <button
-                          onClick={() => {
-                            logout();
-                            setSidebarOpen(false); // closes sidebar
-                          }}
-                          className="w-full text-left group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
-                        >
-                          <LogIn className="h-5 w-5 shrink-0 text-muted-foreground group-hover:text-foreground" />
-                          Logout
-                        </button>
-                      </li>
                     </ul>
                   </li>
                 </ul>
               </nav>
+
+              {/* Logout at bottom for mobile */}
+              <div className="mt-auto pt-4 border-t border-border">
+                <button
+                  onClick={() => {
+                    logout();
+                    setSidebarOpen(false);
+                  }}
+                  className="w-full text-left group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
+                >
+                  <LogIn className="h-5 w-5 shrink-0 text-muted-foreground group-hover:text-foreground" />
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
         </div>

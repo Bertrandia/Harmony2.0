@@ -1,81 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Dropdown } from "react-day-picker";
+
 import CashMemoTable from "../utils/CashMemoTable";
-import ItemizationTable from "../utils/ItemizationTable";
 
 const ExpenseLongForm = ({ onSubmit, initialData }) => {
-  const [formData, setFormData] = useState({
-    invoiceNumber: "",
-    invoiceDate: "",
-    invoiceDueDate: "",
-    expenseDescription: "",
-    remarks: "",
-    vendorName: "",
-    pnlMonth: "",
-    vendorName: "",
-    approvalExpenseSubCategory: "",
-    dueDateType: "",
-    paymentMode: "",
-    typeOfExpenditure: "",
-    DropdownGST: "",
-    isGSTNumber: "",
-    isGstApplicable: "",
-    approvalId: "",
-    preTaxAmount: 0,
-    cgstAmount: 0,
-    igstAmount: 0,
-    sgstAmount:0,
-    otherCharges: 0,
-    totalAmount: 0,
-    paidAdvanceAmount: 0,
-  });
-  const [errors, setErrors] = useState([]);
-
-  useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
-      ...initialData, // override defaults with any values passed from parent
-    }));
-  }, [initialData]);
-  useEffect(() => {
-    const {
-      preTaxAmount,
-      cgstAmount,
-      igstAmount,
-      otherCharges,
-      paidAdvanceAmount,
-    } = formData;
-    const total =
-      (parseFloat(preTaxAmount) || 0) +
-      (parseFloat(cgstAmount) || 0) +
-      (parseFloat(igstAmount) || 0) +
-      (parseFloat(otherCharges) || 0) +
-      (parseFloat(paidAdvanceAmount) || 0);
-    setFormData((prev) => ({
-      ...prev,
-      totalAmount: total,
-    }));
-  }, [
-    formData.preTaxAmount,
-    formData.cgstAmount,
-    formData.igstAmount,
-    formData.otherCharges,
-    formData.paidAdvanceAmount,
-  ]);
-  useEffect(() => {
-    if (!formData.pnlMonth) {
-      const now = new Date();
-      const month = now.toLocaleString("default", { month: "long" }); // August
-      const year = now.getFullYear(); // 2025
-      setFormData((prev) => ({
-        ...prev,
-        pnlMonth: `${month} ${year}`, // "August 2025"
-      }));
-    }
-  }, []);
-
   const dueDateTypes = [
     "Regular payment- Thursday",
     "As per invoice due date",
@@ -123,25 +52,101 @@ const ExpenseLongForm = ({ onSubmit, initialData }) => {
     igstAmount: "IGST Amount",
     otherCharges: "Other Charges",
     totalAmount: "Total Amount",
+    aitotalAmount: "AI Total Amount",
     paidAdvanceAmount: "Paid Advance Amount",
   };
 
+
+
+  const [formData, setFormData] = useState({
+    invoiceNumber: "",
+    invoiceDate: "",
+    invoiceDueDate: "",
+    expenseDescription: "",
+    remarks: "",
+    vendorName: "",
+    pnlMonth: "",
+    vendorName: "",
+    approvalExpenseSubCategory: "",
+    dueDateType: "",
+    paymentMode: "",
+    typeOfExpenditure: "",
+    DropdownGST: "",
+    isGSTNumber: "",
+    isGstApplicable: "",
+    approvalId: "",
+    preTaxAmount: 0,
+    cgstAmount: 0,
+    igstAmount: 0,
+    sgstAmount: 0,
+    otherCharges: 0,
+    totalAmount: 0,
+    paidAdvanceAmount: 0,
+    aitotalAmount: 0,
+  });
+  console.log("intial", initialData);
+  console.log("form", formData);
+  const [errors, setErrors] = useState([]);
+
+  const isCashMemoInvoice = initialData?.isCashMemoInvoice === true;
+
+  useEffect(() => {
+    if (!initialData) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      ...initialData, // apply all initial fields first
+      ...(isCashMemoInvoice && {
+        totalAmount: initialData?.invoiceAmount || 0, // ✅ only override totalAmount
+      }),
+    }));
+  }, [initialData, isCashMemoInvoice]);
+
+  useEffect(() => {
+    if (isCashMemoInvoice) {
+      // ✅ Cash Memo → only set from invoiceAmount, no plus
+      setFormData((prev) => ({
+        ...prev,
+        totalAmount: initialData?.invoiceAmount || 0,
+      }));
+      return;
+    }
+
+    // ✅ Normal invoice → calculate sum
+    const {
+      preTaxAmount,
+      cgstAmount,
+      igstAmount,
+      otherCharges,
+      sgstAmount,
+      paidAdvanceAmount,
+    } = formData;
+
+    const total =
+      (parseFloat(preTaxAmount) || 0) +
+      (parseFloat(cgstAmount) || 0) +
+      (parseFloat(igstAmount) || 0) +
+      (parseFloat(otherCharges) || 0) +
+      (parseFloat(sgstAmount) || 0) +
+      (parseFloat(paidAdvanceAmount) || 0);
+
+    setFormData((prev) => ({
+      ...prev,
+      totalAmount: total,
+    }));
+  }, [
+    formData.preTaxAmount,
+    formData.cgstAmount,
+    formData.igstAmount,
+    formData.otherCharges,
+    formData.paidAdvanceAmount,
+    formData.sgstAmount,
+    isCashMemoInvoice, // 👈 important
+    initialData?.invoiceAmount, // 👈 also track invoiceAmount
+  ]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    // ensure numbers can't go negative
-    if (
-      [
-        "preTaxAmount",
-        "cgstAmount",
-        "igstAmount",
-        "otherCharges",
-        "paidAdvanceAmount",
-      ].includes(name)
-    ) {
-      const num = parseFloat(value);
-      if (num < 0) return; // block negatives
-    }
 
     setFormData((prev) => ({
       ...prev,
@@ -153,7 +158,7 @@ const ExpenseLongForm = ({ onSubmit, initialData }) => {
     const newErrors = [];
     Object.entries(formData).forEach(([key, value]) => {
       // skip remarks only
-      if (["remarks"].includes(key)) return;
+      if (["remarks", "MbudgetLeft"].includes(key)) return;
 
       const label = fieldLabels[key] || key; // fallback to key if not mapped
 
@@ -190,22 +195,41 @@ const ExpenseLongForm = ({ onSubmit, initialData }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // const validationErrors = validateForm();
-    // if (validationErrors.length > 0) {
-    //   setErrors(validationErrors);
-    //   return;
-    // }
-    const { cashMemoItems, ...cleanFormData } = formData;
-    if(initialData?.cashMemoItems && initialData?.cashMemoItems.length > 0){
-              onSubmit({...cleanFormData,isCashMemo:true});
-              setErrors([]);
-    }else if(initialData?.itemozationText &&
-        initialData?.itemozationText !== ""){
-           onSubmit({...cleanFormData,isCashMemo:false});
-           setErrors([]);
-        }
-    
-    
+
+    // Optional: validate required fields
+    const validationErrors = validateForm();
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    const { MbudgetLeft, cashMemoItems, ...cleanFormData } = formData;
+
+    if (initialData?.MbudgetLeft !== undefined) {
+      const budgetLeft = parseFloat(initialData.MbudgetLeft) || 0;
+      const totalAmount = parseFloat(formData.totalAmount) || 0;
+
+      if (totalAmount > budgetLeft) {
+        setErrors([
+          `Budget Left (${budgetLeft}) is less than Total Amount (${totalAmount})`,
+        ]);
+        return; // stop submission
+      }
+    }
+
+    // Clear errors if any
+    setErrors([]);
+
+    if (initialData?.cashMemoItems && initialData?.cashMemoItems.length > 0) {
+      console.log("clean", ...cleanFormData);
+      onSubmit({ ...cleanFormData, isCashMemo: true });
+    } else if (
+      initialData?.itemozationText &&
+      initialData?.itemozationText !== ""
+    ) {
+      console.log("clean", { ...cleanFormData });
+      onSubmit({ ...cleanFormData, isCashMemo: false });
+    }
   };
 
   return (
@@ -257,10 +281,9 @@ const ExpenseLongForm = ({ onSubmit, initialData }) => {
         <div>
           <label className="block text-sm font-medium">PNL Month</label>
           <input
-            type="text"
+            type="date"
             name="pnlMonth"
             value={formData.pnlMonth}
-            readOnly={true}
             onChange={handleChange}
             className="w-full border rounded p-2"
             placeholder="Serviceable months"
@@ -452,6 +475,7 @@ const ExpenseLongForm = ({ onSubmit, initialData }) => {
             step="0.01"
             name="preTaxAmount"
             value={formData.preTaxAmount}
+            readOnly={isCashMemoInvoice}
             onChange={handleChange}
             className="w-full border rounded p-2"
           />
@@ -464,6 +488,7 @@ const ExpenseLongForm = ({ onSubmit, initialData }) => {
             step="0.01"
             name="cgstAmount"
             value={formData.cgstAmount}
+            readOnly={isCashMemoInvoice}
             onChange={handleChange}
             className="w-full border rounded p-2"
           />
@@ -476,18 +501,20 @@ const ExpenseLongForm = ({ onSubmit, initialData }) => {
             step="0.01"
             name="igstAmount"
             value={formData.igstAmount}
+            readOnly={isCashMemoInvoice}
             onChange={handleChange}
             className="w-full border rounded p-2"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium">sgst Amount</label>
+          <label className="block text-sm font-medium">SGST Amount</label>
           <input
             type="number"
             step="0.01"
             name="sgstAmount"
             value={formData.sgstAmount}
+            readOnly={isCashMemoInvoice}
             onChange={handleChange}
             className="w-full border rounded p-2"
           />
@@ -500,19 +527,7 @@ const ExpenseLongForm = ({ onSubmit, initialData }) => {
             step="0.01"
             name="otherCharges"
             value={formData.otherCharges}
-            onChange={handleChange}
-            className="w-full border rounded p-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Total Amount</label>
-          <input
-            type="number"
-            step="0.01"
-            name="totalAmount"
-            readOnly={true}
-            value={formData.totalAmount}
+            readOnly={isCashMemoInvoice}
             onChange={handleChange}
             className="w-full border rounded p-2"
           />
@@ -527,10 +542,36 @@ const ExpenseLongForm = ({ onSubmit, initialData }) => {
             step="0.01"
             name="paidAdvanceAmount"
             value={formData.paidAdvanceAmount}
+            readOnly={isCashMemoInvoice}
             onChange={handleChange}
             className="w-full border rounded p-2"
           />
         </div>
+
+        <div>
+          <label className="block text-sm font-medium">Total Amount</label>
+          <input
+            type="number"
+            step="0.01"
+            name="totalAmount"
+            value={formData.totalAmount}
+            readOnly={true} // always readonly anyway
+            className="w-full border rounded p-2"
+          />
+        </div>
+        {!isCashMemoInvoice && (
+          <div>
+            <label className="block text-sm font-medium">ai total</label>
+            <input
+              type="number"
+              step="0.01"
+              name="aimount"
+              value={formData.aitotalAmount}
+              readOnly={true} // always readonly anyway
+              className="w-full border rounded p-2"
+            />
+          </div>
+        )}
 
         {/* ✅ Show validation errors */}
         {errors.length > 0 && (
@@ -542,11 +583,13 @@ const ExpenseLongForm = ({ onSubmit, initialData }) => {
             </ul>
           </div>
         )}
-        
-      {initialData?.cashMemoItems && initialData?.cashMemoItems.length > 0 ? (
-        // ✅ Show Cash Memo Items Table Component
-        <CashMemoTable items={initialData.cashMemoItems} />
-      ):<div></div>}
+
+        {initialData?.cashMemoItems && initialData?.cashMemoItems.length > 0 ? (
+          // ✅ Show Cash Memo Items Table Component
+          <CashMemoTable items={initialData.cashMemoItems} />
+        ) : (
+          <div></div>
+        )}
         <div className="col-span-2 flex justify-end mt-4">
           <button
             type="submit"
@@ -556,8 +599,6 @@ const ExpenseLongForm = ({ onSubmit, initialData }) => {
           </button>
         </div>
       </form>
-
-      
     </div>
   );
 };

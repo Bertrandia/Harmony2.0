@@ -17,6 +17,7 @@ const CashMemoForm = ({
   approvalIds,
   onRefreshApprovals,
   onCashmemoInvoiceDone,
+  selectedVendor
 }) => {
   const [vendorName, setVendorName] = useState("");
   const [file, setFile] = useState(null);
@@ -140,7 +141,7 @@ const CashMemoForm = ({
         setLoading(false);
         return;
       }
-
+     
       const lmRef = doc(db, "user", userDetails?.id);
       const parsedInvoiceDate = Timestamp.fromDate(new Date(invoiceDate));
       const totalItemsAmount = items.reduce(
@@ -168,9 +169,9 @@ const CashMemoForm = ({
         cashMemoDataForm,
         userDetails?.id
       );
-      // const cashMemoPdfUrl = "url demo";
+     
       const cashMemoTemplate = {
-        cashMemoPdf: cashMemoPdfUrl,
+        cashMemoPdf: cashMemoPdfUrl || "",
         dateOfSubmission: Timestamp.now(),
         invoiceDate: cashMemoDataForm.invoiceDate,
         isTaxable: false,
@@ -188,18 +189,16 @@ const CashMemoForm = ({
         invoiceNumber: cashMemoDataForm.invoiceNumber,
       };
 
-      // console.log("✅ Cash Memo Data:", cashMemoTemplate);
-
       const crmCashMemoCol = collection(db, "crmCashMemo");
       const docRef = await addDoc(crmCashMemoCol, cashMemoTemplate);
 
-     
       setCashMemoInfo({
         vendorName: cashMemoDataForm.vendorName,
         invoiceNumber: cashMemoDataForm.invoiceNumber,
         invoiceDate: cashMemoDataForm.invoiceDate,
         cashMemoPdfUrl,
         cashMemoRef: docRef,
+        cashMemoallItemsTotal: totalItemsAmount,
       });
 
       setSuccess(true);
@@ -214,6 +213,7 @@ const CashMemoForm = ({
   // 🔹 Step 1: define the submit handler function outside JSX
   const handleCashMemoInvoiceSubmit = async (formData) => {
     try {
+      
       setSubmitting(true);
 
       const taskRef = task?.id
@@ -228,33 +228,21 @@ const CashMemoForm = ({
         throw new Error("Cash Memo Invoice Date is missing.");
       }
 
-      // 🔹 Format date for uniqueExpenseId
       const date = cashMemoInfo.invoiceDate.toDate();
       const day = String(date.getDate()).padStart(2, "0");
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const year = date.getFullYear();
       const invoiceDateStr = `${day}${month}${year}`;
 
-      // 🔹 Omni details
-      let ominidetails = {};
-      if (
-        formData?.paymentMode === "OmniCard" ||
-        formData?.paymentMode === "OmniCardUPI"
-      ) {
-        if (!formData?.omniTransactionId) {
-          throw new Error(
-            "OmniCard transaction ID is required for Omni payments."
-          );
-        }
-        ominidetails = { omniTransactionId: formData.omniTransactionId };
-      }
+    
+      
 
       // 🔹 Unique expense ID
       const uniqueExpenseId = (
         (patron?.newPatronName || "") +
         invoiceDateStr +
         (formData?.invoiceAmount || "") +
-        (cashMemoInfo?.vendorName || "") +
+        (selectedVendor.vendorName || "") +
         (cashMemoInfo?.invoiceNumber || "")
       )
         .replaceAll(" ", "")
@@ -270,19 +258,21 @@ const CashMemoForm = ({
         isInvoiceAdded: true,
         invoiceDate: cashMemoInfo?.invoiceDate,
         cashMemoRef: cashMemoInfo?.cashMemoRef || null,
+        isCashMemoApplied:true
       };
       const parsedPaymenteDate = !formData?.paymentDate
-              ? null
-              : Timestamp.fromDate(new Date(formData.paymentDate));
+        ? null
+        : Timestamp.fromDate(new Date(formData.paymentDate));
 
       const Finaldetails = {
-        vendorName:cashMemoInfo?.vendorName,
+        vendorName: selectedVendor.vendorName,
         taskRef,
         patronRef: task?.patronRef || null,
         billingModel: formData?.billingModel || "",
         taskID: task?.taskID || "",
         paymentMode: formData?.paymentMode || "",
         invoiceAmount: formData?.invoiceAmount || 0,
+        transactionId:formData?.transactionId,
         createdAt: Timestamp.now(),
         createdBy: userDetails?.email || "",
         isExpenseAdded: false,
@@ -304,13 +294,12 @@ const CashMemoForm = ({
         newPatronName: patron?.newPatronName || "",
         newPatronID: patron?.newPatronID || "",
         approvalRef,
-        ...ominidetails,
-        ...invoicedatarelatedFields,
+       ...invoicedatarelatedFields,
       };
 
+      // console.log(Finaldetails)
      
 
-      // 🔹 Save invoice
       const lmInvoicesRef = collection(db, "LMInvoices");
       await addDoc(lmInvoicesRef, Finaldetails);
 
@@ -324,8 +313,8 @@ const CashMemoForm = ({
       const safeInvoiceAmount = isNaN(invoiceAmount) ? 0 : invoiceAmount;
 
       const updateadvanceApprovalFinance = {
-        budgetLeft: (safeBudgetLeft - safeInvoiceAmount).toFixed(2),
-        budgetSpent: (safeBudgetSpend + safeInvoiceAmount).toFixed(2),
+        budgetLeft: (safeBudgetLeft - safeInvoiceAmount),
+        budgetSpent: (safeBudgetSpend + safeInvoiceAmount),
       };
 
       const approvalDocRef = doc(
@@ -333,13 +322,14 @@ const CashMemoForm = ({
         "advanceApprovalFinance",
         formData?.approvalDocId
       );
+     
       await updateDoc(approvalDocRef, updateadvanceApprovalFinance);
 
       if (typeof onRefreshApprovals === "function") {
         await onRefreshApprovals();
       }
 
-      // console.log(updateadvanceApprovalFinance);
+      
 
       setCashMemoInvoiceSuccess(true);
     } catch (error) {
@@ -350,214 +340,246 @@ const CashMemoForm = ({
     }
   };
 
- return (
-  <>
-    {/* Cash Memo Form */}
-    <form
-      onSubmit={handleSubmit}
-      className="mt-6 bg-white shadow-md rounded-lg p-6 space-y-6"
-    >
-      {/* Vendor & Sold To */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block font-medium mb-2">Vendor Name</label>
-          <input
-            type="text"
-            value={vendorName}
-            onChange={(e) => setVendorName(e.target.value)}
-            className="w-full px-3 py-2 border rounded focus:ring focus:ring-blue-200"
-          />
-        </div>
-
-        <div>
-          <label className="block font-medium mb-2">Sold To</label>
-          <input
-            type="text"
-            value={soldTo}
-            onChange={(e) => setSoldTo(e.target.value)}
-            className="w-full px-3 py-2 border rounded focus:ring focus:ring-blue-200"
-          />
-        </div>
-      </div>
-
-      {/* Invoice Date & File Upload */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block font-medium mb-2">Invoice Date</label>
-          <input
-            type="date"
-            value={invoiceDate}
-            onChange={(e) => setInvoiceDate(e.target.value)}
-            className="w-full px-3 py-2 border rounded focus:ring focus:ring-blue-200"
-          />
-        </div>
-
-        <div>
-          <label className="block font-medium mb-2">Upload File/Image</label>
-          <input
-            type="file"
-            accept="image/*,application/pdf"
-            onChange={(e) => setFile(e.target.files[0])}
-            className="w-full border rounded px-2 py-1"
-          />
-        </div>
-      </div>
-
-      {/* Items Section */}
-      <div>
-        <h2 className="text-lg font-semibold mb-4 border-b pb-2">Items</h2>
-        {items.map((item, index) => (
-          <div
-            key={index}
-            className="border p-4 rounded-lg mb-4 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 relative"
-          >
-            <div>
-              <label className="block text-sm font-medium mb-2">Item Name</label>
-              <input
-                type="text"
-                value={item.itemName}
-                onChange={(e) =>
-                  handleItemChange(index, "itemName", e.target.value)
-                }
-                className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Item Units</label>
-              <select
-                value={item.itemUnits}
-                onChange={(e) =>
-                  handleItemChange(index, "itemUnits", e.target.value)
-                }
-                className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
-              >
-                <option value="">Select Unit</option>
-                {[
-                  "m", "Ltr.", "Box", "Can", "Btl.", "Nos", "Pcs.", "PKT.", "Dozen", "Sft",
-                  "L-Sip", "Trips", "Set", "Foot", "Bundle", "SQM", "Coil", "Days", "RFT",
-                  "Pair", "CRT", "Tin", "Jar", "Roll", "Hrs",
-                ].map((unit) => (
-                  <option key={unit} value={unit}>
-                    {unit}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Quantity</label>
-              <input
-                type="number"
-                value={item.itemQuantity}
-                onChange={(e) =>
-                  handleItemChange(index, "itemQuantity", e.target.value)
-                }
-                className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Total</label>
-              <input
-                type="number"
-                value={item.itemTotal}
-                onChange={(e) =>
-                  handleItemChange(index, "itemTotal", e.target.value)
-                }
-                className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Rate (auto)</label>
-              <input
-                type="text"
-                value={item.itemRate}
-                readOnly
-                className="w-full border px-3 py-2 rounded bg-gray-100"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-2">Description</label>
-              <input
-                type="text"
-                value={item.itemDescription}
-                onChange={(e) =>
-                  handleItemChange(index, "itemDescription", e.target.value)
-                }
-                className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                const newItems = items.filter((_, i) => i !== index);
-                setItems(newItems);
-              }}
-              className="absolute top-2 right-2 text-red-600 hover:text-red-800 text-sm"
-            >
-              ✕ Delete
-            </button>
+  return (
+    <>
+      {/* Cash Memo Form */}
+      <form
+        onSubmit={handleSubmit}
+        className="mt-6 bg-white shadow-md rounded-lg p-6 space-y-6"
+      >
+        {/* Vendor & Sold To */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block font-medium mb-2">Vendor Name</label>
+            <input
+              type="text"
+              value={vendorName}
+              onChange={(e) => setVendorName(e.target.value)}
+              className="w-full px-3 py-2 border rounded focus:ring focus:ring-blue-200"
+            />
           </div>
-        ))}
 
-        <button
-          type="button"
-          onClick={handleAddItem}
-          disabled={success}
-          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          + Add Item
-        </button>
-      </div>
+          <div>
+            <label className="block font-medium mb-2">Sold To</label>
+            <input
+              type="text"
+              value={soldTo}
+              onChange={(e) => setSoldTo(e.target.value)}
+              className="w-full px-3 py-2 border rounded focus:ring focus:ring-blue-200"
+            />
+          </div>
+        </div>
 
-      {/* Error Display */}
-      {Object.keys(formErrors).length > 0 && (
-        <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-          <ul className="list-disc list-inside text-sm">
-            {Object.values(formErrors).map((msg, idx) => (
-              <li key={idx}>{msg}</li>
-            ))}
-          </ul>
+        {/* Invoice Date & File Upload */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block font-medium mb-2">Invoice Date</label>
+            <input
+              type="date"
+              value={invoiceDate}
+              onChange={(e) => setInvoiceDate(e.target.value)}
+              className="w-full px-3 py-2 border rounded focus:ring focus:ring-blue-200"
+            />
+          </div>
+
+          <div>
+            <label className="block font-medium mb-2">Upload File/Image</label>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setFile(e.target.files[0])}
+              className="w-full border rounded px-2 py-1"
+            />
+          </div>
+        </div>
+
+        {/* Items Section */}
+        <div>
+          <h2 className="text-lg font-semibold mb-4 border-b pb-2">Items</h2>
+          {items.map((item, index) => (
+            <div
+              key={index}
+              className="border p-4 rounded-lg mb-4 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 relative"
+            >
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Item Name
+                </label>
+                <input
+                  type="text"
+                  value={item.itemName}
+                  onChange={(e) =>
+                    handleItemChange(index, "itemName", e.target.value)
+                  }
+                  className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Item Units
+                </label>
+                <select
+                  value={item.itemUnits}
+                  onChange={(e) =>
+                    handleItemChange(index, "itemUnits", e.target.value)
+                  }
+                  className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
+                >
+                  <option value="">Select Unit</option>
+                  {[
+                    "m",
+                    "Ltr.",
+                    "Box",
+                    "Can",
+                    "Btl.",
+                    "Nos",
+                    "Pcs.",
+                    "PKT.",
+                    "Dozen",
+                    "Sft",
+                    "L-Sip",
+                    "Trips",
+                    "Set",
+                    "Foot",
+                    "Bundle",
+                    "SQM",
+                    "Coil",
+                    "Days",
+                    "RFT",
+                    "Pair",
+                    "CRT",
+                    "Tin",
+                    "Jar",
+                    "Roll",
+                    "Hrs",
+                  ].map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Quantity
+                </label>
+                <input
+                  type="number"
+                  value={item.itemQuantity}
+                  onChange={(e) =>
+                    handleItemChange(index, "itemQuantity", e.target.value)
+                  }
+                  className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Total</label>
+                <input
+                  type="number"
+                  value={item.itemTotal}
+                  onChange={(e) =>
+                    handleItemChange(index, "itemTotal", e.target.value)
+                  }
+                  className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Rate (auto)
+                </label>
+                <input
+                  type="text"
+                  value={item.itemRate}
+                  readOnly
+                  className="w-full border px-3 py-2 rounded bg-gray-100"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-2">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  value={item.itemDescription}
+                  onChange={(e) =>
+                    handleItemChange(index, "itemDescription", e.target.value)
+                  }
+                  className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const newItems = items.filter((_, i) => i !== index);
+                  setItems(newItems);
+                }}
+                className="absolute top-2 right-2 text-red-600 hover:text-red-800 text-sm"
+              >
+                ✕ Delete
+              </button>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={handleAddItem}
+            disabled={success}
+            className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            + Add Item
+          </button>
+        </div>
+
+        {/* Error Display */}
+        {Object.keys(formErrors).length > 0 && (
+          <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+            <ul className="list-disc list-inside text-sm">
+              {Object.values(formErrors).map((msg, idx) => (
+                <li key={idx}>{msg}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Success or Submit */}
+        {success ? (
+          <div className="mt-4 px-4 py-3 rounded bg-green-100 text-green-700 font-semibold text-center">
+            ✅ Cash Memo Generated Successfully!
+          </div>
+        ) : (
+          <button
+            type="submit"
+            disabled={loading}
+            className={`mt-4 px-6 py-2 rounded-lg text-white font-medium ${
+              loading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
+            }`}
+          >
+            {loading ? "Generating..." : "Generate Cash Memo"}
+          </button>
+        )}
+      </form>
+
+      {/* Invoice Section */}
+      {success && (
+        <div className="p-6 border rounded-lg bg-white shadow-md mt-6">
+          <CashMemoInvoiceForm
+            itemstotalAmount={cashMemoInfo.cashMemoallItemsTotal}
+            approvalIds={approvalIds}
+            submitting={submitting}
+            cashMemoInvoicesuccess={cashMemoInvoicesuccess}
+            onDone={onCashmemoInvoiceDone}
+            onSubmit={handleCashMemoInvoiceSubmit}
+          />
         </div>
       )}
-
-      {/* Success or Submit */}
-      {success ? (
-        <div className="mt-4 px-4 py-3 rounded bg-green-100 text-green-700 font-semibold text-center">
-          ✅ Cash Memo Generated Successfully!
-        </div>
-      ) : (
-        <button
-          type="submit"
-          disabled={loading}
-          className={`mt-4 px-6 py-2 rounded-lg text-white font-medium ${
-            loading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
-          }`}
-        >
-          {loading ? "Generating..." : "Generate Cash Memo"}
-        </button>
-      )}
-    </form>
-
-    {/* Invoice Section */}
-    {success && (
-      <div className="p-6 border rounded-lg bg-white shadow-md mt-6">
-        <CashMemoInvoiceForm
-          approvalIds={approvalIds}
-          submitting={submitting}
-          cashMemoInvoicesuccess={cashMemoInvoicesuccess}
-          onDone={onCashmemoInvoiceDone}
-          onSubmit={handleCashMemoInvoiceSubmit}
-        />
-      </div>
-    )}
-  </>
-);
-
+    </>
+  );
 };
 
 export default CashMemoForm;

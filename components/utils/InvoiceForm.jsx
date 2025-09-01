@@ -23,7 +23,7 @@ const InvoiceForm = ({
   const [invoiceAmount, setInvoiceAmount] = useState("");
   const [invoiceFile, setInvoiceFile] = useState(null);
   const [invoiceDescription, setInvoiceDescription] = useState("");
-  const [omniTransactionId, setOmniTransactionId] = useState("");
+  const [transactionId, setTransactionId] = useState("");
   const [formErrors, setFormErrors] = useState({});
   const fileNameRef = useRef(null);
 
@@ -45,13 +45,9 @@ const InvoiceForm = ({
       errors.paymentDate = `Expense amount exceeds the available budget. Budget left:${budgetLeft}`;
     if (!paymentDate) errors.paymentDate = "Payment Date is required";
     if (!paymentMode) errors.paymentMode = "Payment Mode is required";
+     if (!transactionId) errors.paymentMode = "Transactionid is required";
 
-    if (
-      (paymentMode === "OmniCard" || paymentMode === "OmniCardUPI") &&
-      !omniTransactionId
-    ) {
-      errors.omniTransactionId = "Omni Transaction ID is required";
-    }
+    
 
     if (!billingModel) errors.billingModel = "Billing Model is required";
     if (!approvalId) errors.approvalId = "Approval ID is required";
@@ -101,10 +97,7 @@ const InvoiceForm = ({
         invoiceNumber: hideInvoiceFields ? null : invoiceNumber,
         invoiceFile: hideInvoiceFields ? null : invoiceFile,
         invoiceDescription,
-        omniTransactionId:
-          paymentMode === "OmniCard" || paymentMode === "OmniCardUPI"
-            ? omniTransactionId
-            : null,
+        transactionId,
         budgetLeft,
         budgetSpend,
       };
@@ -126,7 +119,7 @@ const InvoiceForm = ({
     setInvoiceAmount("");
     setInvoiceFile(null);
     setInvoiceDescription("");
-    setOmniTransactionId("");
+    setTransactionId("");
     setFormErrors({});
     if (fileNameRef.current) {
       fileNameRef.current.value = ""; // clears the UI filename
@@ -136,7 +129,7 @@ const InvoiceForm = ({
     <div className="w-full max-w-7xl mx-auto mt-6 bg-gradient-to-br from-white to-gray-50 shadow-2xl rounded-2xl p-10 border border-gray-100 backdrop-blur-sm">
       {/* Header */}
       <div className="flex items-center mb-10">
-        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
+        <div className="w-12 h-12 bg-gradient-to-r from-gray-500 to-gray-600 rounded-xl flex items-center justify-center mr-4 shadow-lg">
           <svg
             className="w-6 h-6 text-white"
             fill="none"
@@ -218,22 +211,22 @@ const InvoiceForm = ({
         </div>
 
         {/* Omni Transaction ID (conditional) */}
-        {(paymentMode === "OmniCard" || paymentMode === "OmniCardUPI") && (
+       
           <div className="w-full">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Omni Transaction ID
+            Transaction ID
             </label>
             <input
               type="text"
-              value={omniTransactionId}
-              onChange={(e) => setOmniTransactionId(e.target.value)}
+              value={transactionId}
+              onChange={(e) => setTransactionId(e.target.value)}
               placeholder="Enter transaction ID"
               className="w-full px-5 py-3 bg-white border-2 border-gray-200 rounded-xl 
                        focus:ring-4 focus:ring-blue-100 focus:border-blue-500 
                        text-gray-700 shadow-sm hover:border-blue-300"
             />
           </div>
-        )}
+       
 
         {/* Approval Dropdown full width */}
         <div className="lg:col-span-2 xl:col-span-3">
@@ -351,7 +344,7 @@ const InvoiceForm = ({
             className={`px-10 py-3 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 ${
               invoiceLoading
                 ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-                : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 focus:ring-blue-200 shadow-lg hover:shadow-xl"
+                : "bg-gradient-to-r from-gray-600 to-gray-600 text-white hover:from-gary-700 hover:to-gary-700 focus:ring-gray-200 shadow-lg hover:shadow-xl"
             }`}
           >
             {invoiceLoading ? "Submitting..." : "Submit Invoice"}
