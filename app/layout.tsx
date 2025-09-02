@@ -9,7 +9,7 @@ import {TaskProvider} from './context/TaskContext'
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Hormony2.O',
+  title: 'Hormony',
   description: 'Modern LM Mangement system',
 };
 
