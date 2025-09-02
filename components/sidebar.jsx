@@ -11,7 +11,9 @@ import {
   Menu,
   X,
   Sun,
+   FileText,
   MessageSquare,
+   Users
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -22,12 +24,12 @@ const navigationItems = [
   {
     name: "All-Lm-Invoices",
     href: "/allLMInvoicesList",
-    icon: LayoutDashboard,
+    icon: FileText
   },
   {
     name: "MY-Patrons",
     href: "/mypatrons",
-    icon: LayoutDashboard,
+    icon:  Users,
   },
 ];
 
