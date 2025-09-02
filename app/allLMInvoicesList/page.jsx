@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 import { db } from "@/firebasedata/config";
 import { useRouter } from "next/navigation";
+import PatronShimmer from "@/components/utils/PatronShimmer";
 
 const Page = () => {
   const router = useRouter();
@@ -61,7 +62,11 @@ const Page = () => {
     );
   });
 
-  if (loading) return <div>Loading invoices...</div>;
+  if (loading) {
+    return [1, 2, 3, 4, 5].map((index) => {
+      return <PatronShimmer key={index}></PatronShimmer>;
+    });
+  }
 
   return (
     <div className="p-6">

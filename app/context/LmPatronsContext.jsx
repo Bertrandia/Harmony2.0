@@ -1,3 +1,4 @@
+"use client";
 import React, { createContext, useState, useEffect } from "react";
 import { collection, getDocs, query, where, doc } from "firebase/firestore";
 import { db } from "../../firebasedata/config";

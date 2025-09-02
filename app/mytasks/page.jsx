@@ -1,159 +1,20 @@
 "use client";
-import React, { useContext, useEffect } from "react";
-import ProtectedLayout from "@/components/ProtectedLayout";
-import { LMPatronContext, LMPatronProvider } from "../context/LmPatronsContext";
-import { Sidebar } from "@/components/sidebar";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import React, { useContext, useState } from "react";
 
-import {
-  Filter,
-  MoreHorizontal,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Calendar,
-  MapPin,
-  User,
-  Plus,
-  Search,
-  SortAsc,
-} from "lucide-react";
+import { TaskContext } from "../context/TaskContext";
+
 import { Input } from "@/components/ui/input";
-import {
-  collection,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  where,
-} from "firebase/firestore";
-import { db } from "@/firebasedata/config";
+import { Search, CheckCircle } from "lucide-react";
 import MytasksTaskCard from "../../components/utils/MytasksTaskCard";
+import PatronShimmer from "@/components/utils/PatronShimmer";
 
 function MyTasksPage() {
-  const { lmpatrons } = useContext(LMPatronContext);
+  const { contexttasks, tasksLoading } = useContext(TaskContext); // 👈 from provider
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
-  const [tasks, setTasks] = useState([]);
-  //   const tasks = [
-  //     {
-  //       id: 1,
-  //       title: "Dinner Reservation at Zaza",
-  //       date: "Today",
-  //       time: "7:30 PM",
-  //       priority: "medium",
-  //       status: "Pending",
-  //       statusColor: "pending",
-  //       icon: Clock,
-  //       description: "Table for 4 at Zaza Restaurant",
-  //       location: "Downtown",
-  //     },
-  //     {
-  //       id: 2,
-  //       title: "Dry Cleaning Pickup",
-  //       date: "Tomorrow",
-  //       time: "10:00 AM",
-  //       priority: "low",
-  //       status: "In Progress",
-  //       statusColor: "progress",
-  //       icon: Clock,
-  //       description: "3 suits and 2 dresses",
-  //       location: "Main Street Cleaners",
-  //     },
-  //     {
-  //       id: 3,
-  //       title: "Book Flight to London",
-  //       date: "May 15, 2023",
-  //       time: "All Day",
-  //       priority: "high",
-  //       status: "Completed",
-  //       statusColor: "completed",
-  //       icon: CheckCircle,
-  //       description: "Round trip business class tickets",
-  //       location: "Heathrow Airport",
-  //     },
-  //     {
-  //       id: 4,
-  //       title: "Grocery Delivery",
-  //       date: "Yesterday",
-  //       time: "2:00 PM",
-  //       priority: "medium",
-  //       status: "Cancelled",
-  //       statusColor: "cancelled",
-  //       icon: XCircle,
-  //       description: "Weekly grocery order",
-  //       location: "Home",
-  //     },
-  //     {
-  //       id: 5,
-  //       title: "Schedule Dentist Appointment",
-  //       date: "Next Week",
-  //       time: "Morning",
-  //       priority: "medium",
-  //       status: "Pending",
-  //       statusColor: "pending",
-  //       icon: Clock,
-  //       description: "Regular checkup and cleaning",
-  //       location: "Dr. Smith Dental",
-  //     },
-  //   ];
 
-  useEffect(() => {
-    if (!lmpatrons?.length) return;
-
-    // Array to hold unsubscribe functions for each listener
-    const unsubscribes = [];
-
-    lmpatrons.forEach((patron) => {
-      const patronRef = doc(db, "addPatronDetails", patron.id);
-
-      const q = query(
-        collection(db, "createTaskCollection"),
-        where("patronRef", "==", patronRef),
-        orderBy("createdAt", "desc")
-      );
-
-      const unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          const patronTasks = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            patronId1: patron.id,
-            ...doc.data(),
-          }));
-
-          setTasks((prevTasks) => {
-            const otherTasks = prevTasks.filter(
-              (task) => task.patronId1 !== patron.id
-            );
-            const updatedTasks = [...otherTasks, ...patronTasks];
-
-            // Sort globally by createdAt descending
-            return updatedTasks.sort((a, b) => {
-              const timeA = a.createdAt?.seconds || 0;
-              const timeB = b.createdAt?.seconds || 0;
-              return timeB - timeA; // Newest first
-            });
-          });
-        },
-        (error) => {
-          console.error("Error listening to tasks:", error);
-        }
-      );
-
-      unsubscribes.push(unsubscribe);
-    });
-
-    return () => {
-      unsubscribes.forEach((unsub) => unsub());
-    };
-  }, [lmpatrons]);
-
-  const filteredTasks = tasks.filter((task) => {
+  const filteredTasks = contexttasks.filter((task) => {
     const matchesSearch =
       (task?.taskInput?.toLowerCase() ?? "").includes(
         searchTerm.toLowerCase()
@@ -174,12 +35,13 @@ function MyTasksPage() {
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
+  
+
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Fixed Header */}
       <div className="border-b border-border bg-background px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          {/* Header content */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground">
@@ -239,29 +101,16 @@ function MyTasksPage() {
       {/* Scrollable Task List */}
       <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="space-y-4">
-            {filteredTasks.map((task) => (
-              <MytasksTaskCard key={task.id} task={task} />
-            ))}
-          </div>
-
-          {filteredTasks.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                No Tasks
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                {searchTerm ||
-                filterStatus !== "all" ||
-                filterPriority !== "all"
-                  ? "Try adjusting your search or filters"
-                  : "Create your first task to get started"}
-              </p>
-              
+          {tasksLoading ? (
+            [1,2,3,4,5].map(()=><PatronShimmer></PatronShimmer>)
+          ) : filteredTasks.length > 0 ? (
+            <div className="space-y-4">
+              {filteredTasks.map((task) => (
+                <MytasksTaskCard key={task.id} task={task} />
+              ))}
             </div>
+          ) : (
+             <div></div>
           )}
         </div>
       </div>
@@ -270,11 +119,5 @@ function MyTasksPage() {
 }
 
 export default function TasksListPage() {
-  return (
-    <ProtectedLayout>
-      <LMPatronProvider>
-        <MyTasksPage></MyTasksPage>
-      </LMPatronProvider>
-    </ProtectedLayout>
-  );
+  return <MyTasksPage />;
 }

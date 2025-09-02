@@ -128,7 +128,7 @@ const Page = () => {
     }
   };
 
-  console.log(taskdata)
+
   if (!taskdata) return <div>Loading...</div>;
  
   return (

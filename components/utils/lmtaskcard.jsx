@@ -14,25 +14,25 @@ export default function LmTaskCard({ task }) {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Completed":
+      case "completed":
         return {
           bg: "bg-green-100",
           text: "text-green-800",
           button: "bg-green-500 hover:bg-green-600",
         };
-      case "In Process":
+      case "in process":
         return {
           bg: "bg-orange-100",
           text: "text-orange-700",
           button: "bg-orange-500 hover:bg-orange-600",
         };
-      case "To be Started":
+      case "to be started":
         return {
           bg: "bg-yellow-100",
           text: "text-yellow-700",
           button: "bg-yellow-500 hover:bg-yellow-600 text-black",
         };
-        case "Created":
+        case "created":
         return {
           bg: "bg-blue-100",
           text: "text-blue-600",
@@ -47,7 +47,7 @@ export default function LmTaskCard({ task }) {
     }
   };
 
-  const statusStyles = getStatusColor(task?.taskStatusCategory);
+  const statusStyles = getStatusColor(task?.taskStatusCategory.toLowerCase());
 
   return (
     <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 p-4 border border-gray-200 flex flex-col justify-between h-full">

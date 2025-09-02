@@ -18,6 +18,7 @@ export default function GeneratedTaskFormModal({
         ...task,
         dummyId: `id-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
       }));
+     setSubmissionStatus({});
       setAiTaskQueue(enrichedTasks);
     }
   }, [isOpen, aiTasks]);
@@ -35,6 +36,7 @@ export default function GeneratedTaskFormModal({
               setAiTaskQueue([]);
               onClose();
               setSubmissionStatus({});
+              setIsFirstTaskSubmitted(false);
             }}
           >
             ✕
@@ -54,7 +56,7 @@ export default function GeneratedTaskFormModal({
                 onDelete={(i) => {
                   const updatedTasks = [...aiTaskQueue];
                   updatedTasks.splice(i, 1);
-                  console.log(updatedTasks);
+
                   setAiTaskQueue(updatedTasks);
                 }}
                 onSubmit={(formData) =>

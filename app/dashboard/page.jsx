@@ -2,34 +2,31 @@
 import React, { useState, useEffect, useMemo, useContext } from "react";
 import { useAuth } from "../context/AuthContext";
 import ProtectedLayout from "../../components/ProtectedLayout";
-import { LMPatronProvider, LMPatronContext } from "../context/LmPatronsContext";
+import { LMPatronContext } from "../context/LmPatronsContext";
+import { TaskContext } from "../context/TaskContext";
 import { db } from "../../firebasedata/config";
 import { useGeminiGenerateTask } from "../../components/hooks/useGeminiGenerateTask";
 import { useExtraOrdinaryScore } from "../../components/hooks/useExtraOrdinaryScore";
 import { useValueScore } from "../../components/hooks/useValueScore";
-
 import GeneratedTaskFormModal from "../../components/utils/GeneratedTaskFormModal";
 import FullPageLoader from "../../components/utils/FullPageLoader";
 import OnlineToggle from "../../components/utils/OnlineToggle";
 import { gapi } from "../../components/constants";
 import { format } from "date-fns";
 import TaskCard from "../../components/utils/lmtaskcard";
+import AiScoreLoader from "../../components/utils/AiScoreLoader";
 import {
-  getDocs,
   doc,
   collection,
-  where,
-  query,
   updateDoc,
   getDoc,
   addDoc,
   Timestamp,
-  onSnapshot,
-  orderBy,
 } from "firebase/firestore";
 
-function DashboardContent({ userDetails }) {
+function DashboardContent({ userDetails, contexttasks }) {
   const { lmpatrons } = useContext(LMPatronContext);
+
   const [selectedPatron, setSelectedPatron] = useState("all");
   const displayedName = userDetails?.display_name || "N/A";
   const [tasks, setTasks] = useState([]);
@@ -51,52 +48,6 @@ function DashboardContent({ userDetails }) {
 
   const [extraOrdinaryScoreOrValueScore, setExtraOrdinaryScoreOrValueScore] =
     useState(null);
-
-  useEffect(() => {
-    if (!lmpatrons?.length) return;
-
-    // Array to hold unsubscribe functions for each listener
-    const unsubscribes = [];
-
-    lmpatrons.forEach((patron) => {
-      const patronRef = doc(db, "addPatronDetails", patron.id);
-
-      const q = query(
-        collection(db, "createTaskCollection"),
-        where("patronRef", "==", patronRef),
-        orderBy("createdAt", "desc")
-      );
-
-      const unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          const patronTasks = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            patronId1: patron.id,
-            ...doc.data(),
-          }));
-
-          // Update tasks state safely by merging tasks from all patrons
-          setTasks((prevTasks) => {
-            // Remove old tasks of this patron and add the new ones
-            const otherTasks = prevTasks.filter(
-              (task) => task.patronId1 !== patron.id
-            );
-            return [...otherTasks, ...patronTasks];
-          });
-        },
-        (error) => {
-          console.error("Error listening to tasks:", error);
-        }
-      );
-
-      unsubscribes.push(unsubscribe);
-    });
-
-    return () => {
-      unsubscribes.forEach((unsub) => unsub());
-    };
-  }, [lmpatrons]);
 
   function generateTaskId(taskCategory, patronName, subCategory) {
     // --- Patron Name Code ---
@@ -137,10 +88,11 @@ function DashboardContent({ userDetails }) {
 
   const filteredTasks =
     selectedPatron === "all"
-      ? tasks
-      : tasks.filter((task) => task.patronId1 === selectedPatron);
+      ? contexttasks
+      : contexttasks.filter((task) => task.patronId1 === selectedPatron);
 
   const groupedTasks = useMemo(() => {
+    // Keep category keys in proper case
     const categories = {
       Created: [],
       "To be Started": [],
@@ -149,23 +101,17 @@ function DashboardContent({ userDetails }) {
     };
 
     filteredTasks.forEach((task) => {
-      const status = task.taskStatusCategory || "";
-      if (categories[status]) {
-        categories[status].push(task);
+      const status = (task.taskStatusCategory || "").toLowerCase();
+
+      if (status === "created") {
+        categories.Created.push(task);
+      } else if (status === "to be started") {
+        categories["To be Started"].push(task);
+      } else if (status === "in process") {
+        categories["In Process"].push(task);
+      } else if (status === "completed") {
+        categories.Completed.push(task);
       }
-    });
-
-    Object.keys(categories).forEach((status) => {
-      categories[status].sort((a, b) => {
-        const aTime = a.createdAt?.toMillis
-          ? a.createdAt.toMillis()
-          : new Date(a.createdAt).getTime();
-        const bTime = b.createdAt?.toMillis
-          ? b.createdAt.toMillis()
-          : new Date(b.createdAt).getTime();
-
-        return bTime - aTime;
-      });
     });
 
     return categories;
@@ -175,7 +121,12 @@ function DashboardContent({ userDetails }) {
     if (note.length === 0) return;
     if (!pendingStatusUpdate || !draggedTask) return;
     if (!draggedTask.taskDueDate) {
+      setWarningMessage(
+        "⚠️ Task DUE Date Is MISSING"
+      );
+      setShowWarning(true);
       return;
+     
     }
 
     function checkIfTaskDelayed(taskDueDate) {
@@ -232,6 +183,7 @@ function DashboardContent({ userDetails }) {
           taskStatusCategory: pendingStatusUpdate,
           taskRef: docRef,
         };
+
         await addDoc(commentDocRef, commentDoc);
       } else {
         console.error("Document not found after update.");
@@ -264,29 +216,34 @@ function DashboardContent({ userDetails }) {
     setExtraOrdinaryScoreOrValueScore(null);
   };
 
-  const handleDrop = async (newStatus) => {
-    if (!draggedTask || draggedTask.taskStatusCategory === newStatus) return;
-    if (newStatus === "Created") {
+  const handleDrop = async (newStatusRaw) => {
+    if (!draggedTask) return;
+    
+    
+    const currentStatus = (draggedTask.taskStatusCategory || "").toLowerCase();
+    const newStatus = (newStatusRaw || "").toLowerCase();
+
+    if (currentStatus === newStatus) return;
+
+    if (newStatus === "created") {
       setWarningMessage(
         "⚠️ You cannot change the task back to Created after it’s set to In Process, To Be Started, or Completed."
       );
       setShowWarning(true);
       return;
     }
-    if (
-      newStatus === "Completed" &&
-      draggedTask.taskStatusCategory === "To be Started"
-    ) {
+
+    if (newStatus === "completed" && currentStatus === "to be started") {
       setWarningMessage(
-        "⚠️ You cannot change the task  To be Started To Completed."
+        "⚠️ You cannot change the task from To Be Started to Completed."
       );
       setShowWarning(true);
       return;
     }
 
     const fromCreatedToInvalid =
-      draggedTask.taskStatusCategory === "Created" &&
-      (newStatus === "In Process" || newStatus === "Completed");
+      currentStatus === "created" &&
+      (newStatus === "in process" || newStatus === "completed");
 
     if (fromCreatedToInvalid) {
       setWarningMessage(
@@ -299,21 +256,16 @@ function DashboardContent({ userDetails }) {
     setAiScoringLoading(true);
 
     try {
-      if (
-        draggedTask.taskStatusCategory === "To be Started" &&
-        newStatus === "In Process"
-      ) {
+      if (currentStatus === "to be started" && newStatus === "in process") {
         const score = await generateExtraOrdinaryScore(draggedTask);
+
         setExtraOrdinaryScoreOrValueScore({
           extraOrdinaryScore: score,
           isExtraodinary: true,
         });
       }
 
-      if (
-        draggedTask.taskStatusCategory === "In Process" &&
-        newStatus === "Completed"
-      ) {
+      if (currentStatus === "in process" && newStatus === "completed") {
         const score = await generateValueScore(draggedTask);
         setExtraOrdinaryScoreOrValueScore({
           valueScore: score,
@@ -323,11 +275,10 @@ function DashboardContent({ userDetails }) {
     } catch (err) {
       console.error("AI Scoring Error:", err);
     } finally {
-      // ✅ Always hide loader after scoring is done
       setAiScoringLoading(false);
     }
 
-    if (draggedTask.taskInput && draggedTask.taskStatusCategory === "Created") {
+    if (draggedTask.taskInput && currentStatus === "created") {
       const generated = await generateTasks(draggedTask.taskInput);
 
       if (generated && generated.length > 0) {
@@ -343,8 +294,7 @@ function DashboardContent({ userDetails }) {
       }
     }
 
-    setPendingStatusUpdate(newStatus);
-
+    setPendingStatusUpdate(newStatusRaw); // keep original case for backend if needed
     setShowNoteModal(true);
   };
 
@@ -406,6 +356,7 @@ function DashboardContent({ userDetails }) {
           ...formData,
           ...baseTaskFields,
         };
+        console.log(enrichedFormData);
         const docRef = doc(db, "createTaskCollection", draggedTask.id);
         await updateDoc(docRef, enrichedFormData);
         setTasks((prev) =>
@@ -437,7 +388,8 @@ function DashboardContent({ userDetails }) {
 
   return (
     <div className="p-6">
-      {(isLoading || aiScoringLoading) && <FullPageLoader />}
+      {isLoading && <FullPageLoader />}
+      {aiScoringLoading && <AiScoreLoader />}
 
       <div className="fixed top-4 right-4 z-50">
         <OnlineToggle userId={userDetails?.id} />
@@ -481,7 +433,7 @@ function DashboardContent({ userDetails }) {
                 ? "bg-blue-50 border-l-4 border-blue-500"
                 : status === "To be Started"
                 ? "bg-yellow-50 border-l-4 border-yellow-500"
-                : status === "To be Started"
+                : status === "to be started"
                 ? "bg-blue-50 border-l-4 border-blue-500"
                 : "bg-gray-50 border-l-4 border-gray-400"
             }
@@ -567,12 +519,11 @@ function DashboardContent({ userDetails }) {
 
 export default function DashboardPage() {
   const { userDetails } = useAuth();
+  const { contexttasks, tasksLoading } = useContext(TaskContext);
 
   return (
     <ProtectedLayout>
-      <LMPatronProvider>
-        <DashboardContent userDetails={userDetails} />
-      </LMPatronProvider>
+      <DashboardContent userDetails={userDetails} contexttasks={contexttasks} />
     </ProtectedLayout>
   );
 }

@@ -220,6 +220,10 @@ export default function ChatInterface() {
   };
 
   const handleSendMessage = async () => {
+    if(chatMode === "hybrid" && selectedFile){
+      alert("In Hybrid Mode Image/Pdf is NOT ALLOWED ")
+      return;
+    }
     if (!newMessage.trim() && !selectedFile) return; // block empty message
     if (!selectedCustomer) return;
 

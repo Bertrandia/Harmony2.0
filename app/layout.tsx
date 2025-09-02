@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthProvider } from './context/AuthContext';
+import { LMPatronProvider } from './context/LmPatronsContext';
+import {TaskProvider} from './context/TaskContext'
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,8 +22,13 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <AuthProvider>
-          
-          {children}
+          <LMPatronProvider>
+            <TaskProvider>
+                   {children}
+            </TaskProvider>
+               
+          </LMPatronProvider>
+        
         
         </AuthProvider>
       </body>

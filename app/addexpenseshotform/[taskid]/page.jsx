@@ -287,7 +287,7 @@ const addexpensesPage = () => {
 
   if (loading) return <div className="p-4 text-center">Loading...</div>;
 
- if (["To be Started", "Created"].includes(task.taskStatusCategory)) {
+ if (["to be started", "created"].includes(task.taskStatusCategory.toLowerCase())) {
   return (
     <div className="flex items-center justify-center h-64">
       <div className="p-6 bg-yellow-100 border border-yellow-300 rounded-xl text-center max-w-lg">
