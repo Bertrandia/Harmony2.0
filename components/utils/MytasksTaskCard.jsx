@@ -148,6 +148,11 @@ const MytasksTaskCard = ({ task }) => {
               <Badge className={`${statusColor.bg} ${statusColor.text}`}>
                 {task.taskStatusCategory}
               </Badge>
+              {task?.isCuratorTask && (
+            <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200">
+              Curator Task
+            </Badge>
+          )}
             </div>
 
             {/* Buttons */}
@@ -171,7 +176,7 @@ const MytasksTaskCard = ({ task }) => {
                 }}
                 className="text-xs px-3 py-1.5 rounded-md font-medium text-white bg-gray-500 hover:bg-gray-600 transition-colors"
               >
-                View Comments
+                View Details
               </button>
 
               {/* Optional Add Expense Button */}

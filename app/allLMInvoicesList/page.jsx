@@ -7,12 +7,16 @@ import {
   query,
   where,
   Timestamp,
+  doc,
 } from "firebase/firestore";
 import { db } from "@/firebasedata/config";
 import { useRouter } from "next/navigation";
 import PatronShimmer from "@/components/utils/PatronShimmer";
+import { useAuth } from "../../app/context/AuthContext";
+
 
 const Page = () => {
+  const { userDetails } = useAuth();
   const router = useRouter();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,19 +24,27 @@ const Page = () => {
 
   useEffect(() => {
     const fetchInvoices = async () => {
+      if (!userDetails?.id) {
+        setLoading(false);
+        return;
+      }
+      const lmRef = doc(db, "user", userDetails.id);
       try {
         const q = query(
           collection(db, "LMInvoices"),
           where("isExpenseAdded", "==", false),
           where("isInvoiceAdded", "==", true),
-          where("isDisabled", "==", false)
+          where("isDisabled", "==", false),
+          where("lmRef", "==", lmRef) 
         );
+
         const querySnapshot = await getDocs(q);
 
         const data = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
+
         data.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
         setInvoices(data);
       } catch (err) {
@@ -43,7 +55,7 @@ const Page = () => {
     };
 
     fetchInvoices();
-  }, []);
+  }, [userDetails?.id]);
 
   const formatDate = (ts) => {
     if (!ts) return "N/A";
@@ -57,7 +69,7 @@ const Page = () => {
   const filteredInvoices = invoices.filter((inv) => {
     const query = searchQuery.toLowerCase();
     return (
-      inv.lmName?.toLowerCase().includes(query) ||
+     
       inv.newPatronName?.toLowerCase().includes(query)
     );
   });
@@ -75,7 +87,7 @@ const Page = () => {
       {/* Search Bar */}
       <input
         type="text"
-        placeholder="Search by LM Name or Patron Name"
+        placeholder="Search by  Patron Name"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         className="w-full p-2 mb-6 border rounded shadow-sm"

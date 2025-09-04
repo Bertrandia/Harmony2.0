@@ -6,6 +6,7 @@ import PatronCard from "../../components/utils/PatronCard";
 import { useGenerateEODReport } from "../../components/hooks/useGenerateEODReport";
 import { gapi } from "../../components/constants";
 import { useGeminiGenerateTask } from "../../components/hooks/useGeminiGenerateTask";
+import { useGeminiGenerateTaskWithImage } from "../../components/hooks/useGeminiGenerateTaskWithImage";
 import { useAuth } from "../../app/context/AuthContext";
 import FullPageLoader from "@/components/utils/FullPageLoader";
 import EODModal from "../../components/utils/EODModal";
@@ -16,16 +17,16 @@ import GeneratedTaskFormModal from "@/components/utils/GeneratedTaskFormModal";
 import { addDoc, collection, doc, Timestamp } from "firebase/firestore";
 import { db } from "@/firebasedata/config";
 import { format } from "date-fns";
-import  PatronShimmer from '../../components/utils/PatronShimmer'
-
-
+import PatronShimmer from "../../components/utils/PatronShimmer";
+import { useRouter } from "next/navigation";
 
 const Page = () => {
   const { lmpatrons } = useContext(LMPatronContext);
+    const router = useRouter();
   const { userDetails } = useAuth();
   const { generateEODReport } = useGenerateEODReport();
-  const { isLoading, aiTasks, error, generateTasks } =
-    useGeminiGenerateTask(gapi);
+  const { isLoading, generateTasks } = useGeminiGenerateTask(gapi);
+  const {isImageLoading,generateTasksFromImage}=useGeminiGenerateTaskWithImage(gapi)
 
   const [aishowModal, setAiShowModal] = useState(false);
   const [aiTaskQueue, setAiTaskQueue] = useState([]);
@@ -36,9 +37,11 @@ const Page = () => {
 
   // Create Task popup state
   const [showTaskPopup, setShowTaskPopup] = useState(false);
+  const [AiShowTaskPopup, setAiShowTaskPopup] = useState(false);
   const [taskInput, setTaskInput] = useState("");
   const [taskPatron, setTaskPatron] = useState(null);
-  const [taskError, setTaskError] = useState(""); // <-- NEW STATE for error
+  const [taskError, setTaskError] = useState("");
+  const [taskImage, setTaskImage] = useState(null); // <-- NEW STATE for error
 
   function generateTaskId(taskCategory, patronName, subCategory) {
     // --- Patron Name Code ---
@@ -77,29 +80,53 @@ const Page = () => {
     return taskId;
   }
 
+  // Utility: Convert File -> Base64
+const convertImageToBase64 = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+
+    reader.onload = () => {
+      // Remove the "data:image/png;base64," prefix
+      const base64String = reader.result.split(",")[1];
+      resolve(base64String);
+    };
+
+    reader.onerror = (error) => reject(error);
+  });
+};
+
+
   const handleOpenModal = (patron) => {
     setSelectedPatron(patron);
     setShowModal(true);
   };
 
-  const handelCreateTask = (patrondata) => {
+  const handleCreateTask = (patrondata) => {
     setTaskPatron(patrondata);
     setTaskError("");
     setShowTaskPopup(true);
   };
 
+  const handleCreateTaskWithImage = (patrondata) => {
+    setTaskPatron(patrondata);
+    setTaskError("");
+    setAiShowTaskPopup(true);
+  };
+
   const handelAlltasks = (patrondata) => {
-    console.log("at", patrondata.patronName || "na");
+     router.push(`/mytasks?id=${patrondata.id}`);
   };
 
   const handelAllExpenses = (patrondata) => {
     console.log("aE", patrondata.patronName || "na");
   };
 
-  const handleCancelTask = () => {
+  const handelCancelTask = () => {
     setTaskInput("");
     setTaskError("");
     setShowTaskPopup(false);
+    setAiShowTaskPopup(false);
   };
 
   // Always return dummy single task (since no patron.tasks)
@@ -127,7 +154,7 @@ const Page = () => {
     setShowModal(false);
   };
 
-  const handleCreateTask = async () => {
+  const handleCreateTaskInput = async () => {
     if (!taskInput.trim()) {
       setTaskError("⚠️ Please enter a valid task input.");
       return;
@@ -155,10 +182,44 @@ const Page = () => {
     }
   };
 
+  const handleCreateTaskWithImageToGenerateTasks = async () => {
+    if (!taskImage) {
+      setTaskError("⚠️ Please add an image.");
+      return;
+    }
+
+    try {
+      setTaskError(""); // clear error
+
+      // Convert to base64
+      const base64Image = await convertImageToBase64(taskImage);
+
+      const generated= await generateTasksFromImage(base64Image);
+      if (generated && generated.length > 0) {
+        setAiTaskQueue(generated);
+        setAiShowModal(true);
+        setAiShowTaskPopup(false);
+        setTaskImage(null);
+      } else {
+        setTaskError(
+          "No tasks generated. Please provide a proper Image to generate tasks."
+        );
+      }
+
+      
+
+      
+    } catch (err) {
+      console.error("Image conversion failed:", err);
+      setTaskError("Failed to process image. Try again.");
+    }
+  };
+
   const handelGenerateTaskCancel = () => {
     setAiShowModal(false);
     setAiTaskQueue([]);
     setTaskInput("");
+    setTaskImage(null);
     setTaskPatron(null);
   };
 
@@ -170,7 +231,7 @@ const Page = () => {
   ) => {
     try {
       const patrondata = taskPatron;
-
+      console.log(patrondata)
       // Guard: Required fields check
       if (
         !patrondata?.id ||
@@ -227,30 +288,29 @@ const Page = () => {
         taskID: taskId,
         tobeStartedAt: Timestamp.now(),
         tobeStartedBy: userDetails.email,
-        assignedLmName: patrondata?.assignedLM || "",
+        assignedLMName: patrondata?.assignedLM || "",
         createdAt: Timestamp.now(),
         createdBy: userDetails.email,
         createdById: userDetails.id,
-        isTasDisabled: false,
+        isTaskDisabled: false,
         lmRef: lmRef,
-        patronName: patrondata?.newPatronName || patrondata?.patronName || "",
+        partonName: patrondata?.newPatronName || patrondata?.patronName || "",
         patronID: patrondata.id,
         patronRef: patronRef,
         taskAssignDate: Timestamp.now(),
         taskInput: taskInput,
       };
-
+      
       const enrichedFormData = {
         ...baseTaskFields,
         ...formData,
       };
-
-      console.log(enrichedFormData);
-
-      // const docRef = await addDoc(
-      //   collection(db, "createTaskCollection"),
-      //   enrichedFormData
-      // );
+       
+      const docRef = await addDoc(
+        collection(db, "createTaskCollection"),
+        enrichedFormData
+      );
+     
 
       if (index === 0) {
         setSubmissionStatus((prev) => ({
@@ -281,19 +341,15 @@ const Page = () => {
     );
   }, [searchText, lmpatrons]);
 
- if (!lmpatrons || lmpatrons.length === 0) {
-  return (
-    [1,2,3,4,5].map((index)=>{
-      return (
-          <PatronShimmer key={index}></PatronShimmer>
-      )
-    })
-  );
-}
+  if (!lmpatrons || lmpatrons.length === 0) {
+    return [1, 2, 3, 4, 5].map((index) => {
+      return <PatronShimmer key={index}></PatronShimmer>;
+    });
+  }
 
   return (
     <div className="p-4">
-      {isLoading && <FullPageLoader />}
+      {(isLoading || isImageLoading ) && <FullPageLoader />}
 
       {/* Search Bar */}
       <div className="mb-4 w-full max-w relative">
@@ -313,9 +369,10 @@ const Page = () => {
             key={patron.id}
             patrondata={patron}
             onGenerate={handleOpenModal}
-            handelCreateTask={handelCreateTask}
+            handelCreateTask={handleCreateTask}
             handelAlltasks={handelAlltasks}
             handelAllExpenses={handelAllExpenses}
+            handelCreateTaskWithImage={handleCreateTaskWithImage}
           />
         ))}
       </div>
@@ -345,10 +402,84 @@ const Page = () => {
               <p className="text-red-600 text-sm mb-3">{taskError}</p>
             )}
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={handleCancelTask}>
+              <Button variant="outline" onClick={handelCancelTask}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateTask}>Generate Task With Ai</Button>
+              <Button onClick={handleCreateTaskInput}>
+                Generate Task With Ai
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {AiShowTaskPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
+            <h2 className="text-lg font-semibold mb-4">
+              Create Task for {taskPatron?.patronName}
+            </h2>
+
+            {/* Image Upload */}
+            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition mb-3">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-10 h-10 text-gray-400 mb-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9V17a3 3 0 11-6 0H9a3 3 0 01-2-5.291"
+                />
+              </svg>
+              <span className="text-sm text-gray-500">
+                Click to upload image
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setTaskImage(e.target.files[0]); // save file in state
+                  }
+                }}
+              />
+            </label>
+
+            {/* Show selected file name + remove option */}
+            {taskImage && (
+              <div className="flex items-center justify-between bg-gray-100 px-3 py-2 rounded-md mb-3">
+                <span className="text-sm text-gray-700 truncate max-w-[70%]">
+                  {taskImage.name}
+                </span>
+                <button
+                  onClick={() => setTaskImage(null)}
+                  className="text-red-500 text-xs font-medium hover:underline"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+
+            {taskError && (
+              <p className="text-red-600 text-sm mb-3">{taskError}</p>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={handelCancelTask}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateTaskWithImageToGenerateTasks}
+                disabled={!taskImage} // prevent submit if no image
+              >
+                Generate Task With AI
+              </Button>
             </div>
           </div>
         </div>

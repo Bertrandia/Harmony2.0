@@ -27,6 +27,14 @@ export default function NewTaskForm({
   const [allCategoryTags, setAllCategoryTags] = useState([]); // All category tags
   const [error, setError] = useState("");
 
+  const [curatorSkills, setCuratorSkills] = useState([]);
+  const [selectedHomeCuratorDepartment, setSelectedHomeCuratorDepartment] =
+    useState(null);
+  const [taskStartTime, setTaskStartTime] = useState("");
+  const [taskEndTime, setTaskEndTime] = useState("");
+  const [assignedTimeSlot, setAssignedTimeSlot] = useState("");
+  const [locationMode, setLocationMode] = useState("");
+
   useEffect(() => {
     setTaskSubject(initialData.task_subject || "");
     setDescription(initialData.description || "");
@@ -40,10 +48,11 @@ export default function NewTaskForm({
 
   useEffect(() => {
     async function fetchData() {
-      const [catSnap, subSnap, tagSnap] = await Promise.all([
+      const [catSnap, subSnap, tagSnap, curatorSnap] = await Promise.all([
         getDocs(collection(db, "d2cExpenseCategory")),
         getDocs(collection(db, "d2cExpenseSubCategory")),
         getDocs(collection(db, "d2cCategoryTagsNameList")),
+        getDocs(collection(db, "curatorSkills")),
       ]);
 
       const categories = catSnap.docs.map((doc) => ({
@@ -54,15 +63,20 @@ export default function NewTaskForm({
         id: doc.id,
         ...doc.data(),
       }));
-      
       const categoryTags = tagSnap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
+      }));
+      const skills = curatorSnap.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ref: docSnap.ref,
+        ...docSnap.data(),
       }));
 
       setCategoryOptions(categories);
       setAllSubCategories(subCategories);
       setAllCategoryTags(categoryTags);
+      setCuratorSkills(skills);
     }
 
     fetchData();
@@ -76,8 +90,6 @@ export default function NewTaskForm({
       tag.categoryRef?.id === category?.id &&
       tag.subCategoryRef?.id === subCategory?.id
   );
-
- 
 
   const handleSubmit = () => {
     if (
@@ -93,24 +105,57 @@ export default function NewTaskForm({
       return;
     }
 
+    // If curator department selected, validate its fields
+    if (
+      selectedHomeCuratorDepartment &&
+      selectedHomeCuratorDepartment !== "none"
+    ) {
+      if (
+        !taskStartTime ||
+        !taskEndTime ||
+        !assignedTimeSlot ||
+        !locationMode
+      ) {
+        setError("Please fill all curator-related fields.");
+        return;
+      }
+    }
+
     setError("");
-          
-    onSubmit(
-      {
-        taskSubject,
-        taskDescription: description,
-        aiCreatedCategory: initialData?.category || "",
-        aiCreatedSubCategory: initialData?.sub_category || "",
-        aiCreatedCategoryTag: initialData?.category_tag || "",
-        taskDueDate: Timestamp.fromDate(new Date(dueDate)),
-        taskCategory: category?.categoryName || "",
-        taskSubCategory: subCategory?.subCategoryName || "",
-        categoryTag: categoryTag?.categoryTagName || "",
-        priority: priority,
-        taskStatusCategory: "To be Started",
-      },
-      index
-    );
+
+    const payload = {
+      taskSubject,
+      taskDescription: description,
+      aiCreatedCategory: initialData?.category || "",
+      aiCreatedSubCategory: initialData?.sub_category || "",
+      aiCreatedCategoryTag: initialData?.category_tag || "",
+      taskDueDate: Timestamp.fromDate(new Date(dueDate)),
+      taskCategory: category?.categoryName || "",
+      taskSubCategory: subCategory?.subCategoryName || "",
+      categoryTag: categoryTag?.categoryTagName || "",
+      priority,
+      taskStatusCategory: "To be Started",
+    };
+
+    // Add curator fields if selected
+    if (
+      selectedHomeCuratorDepartment &&
+      selectedHomeCuratorDepartment !== "none"
+    ) {
+      payload.selectedHomeCuratorDepartment = selectedHomeCuratorDepartment.skill,
+      payload.selectedHomeCuratorDepartmentRef =selectedHomeCuratorDepartment.ref,
+      payload.taskStartTime = Timestamp.fromDate(new Date(taskStartTime));
+      payload.taskEndTime = Timestamp.fromDate(new Date(taskStartTime));
+      payload.assignedTimeSlot = assignedTimeSlot;
+      payload.locationMode = locationMode;
+      payload.isCuratorTask = true;
+      payload.curatorTaskStatus = "Not Assigned";
+    } else {
+      payload.isCuratorTask = false;
+        payload.curatorTaskStatus=""
+    }
+  
+    onSubmit(payload, index);
   };
 
   return (
@@ -220,7 +265,7 @@ export default function NewTaskForm({
         </span>
       </label>
       <input
-        type="date"
+        type="datetime-local"
         className="w-full px-3 py-2 border rounded-lg bg-white"
         value={dueDate}
         onChange={(e) => setDueDate(e.target.value)}
@@ -240,6 +285,77 @@ export default function NewTaskForm({
         <option value="Low">Low</option>
         <option value="High">High</option>
       </select>
+
+      {/* Category */}
+      {/* ... keep your existing category, subcategory, tag fields ... */}
+
+      {/* Curator Department */}
+      <label className="text-sm font-medium">Curator Department</label>
+      <select
+        className="w-full px-3 py-2 border rounded-lg bg-white"
+        value={selectedHomeCuratorDepartment?.id || "none"}
+        onChange={(e) => {
+          if (e.target.value === "none") {
+            setSelectedHomeCuratorDepartment(null);
+          } else {
+            const selected = curatorSkills.find((s) => s.id === e.target.value);
+            setSelectedHomeCuratorDepartment(selected || null);
+          }
+        }}
+      >
+        <option value="none">None</option>
+        {curatorSkills.map((skill) => (
+          <option key={skill.id} value={skill.id}>
+            {skill.skill}
+          </option>
+        ))}
+      </select>
+
+      {/* Show extra fields only if curator selected */}
+      {selectedHomeCuratorDepartment && (
+        <>
+          <label className="text-sm font-medium">Task Start Time</label>
+          <input
+            type="datetime-local"
+            className="w-full px-3 py-2 border rounded-lg bg-white"
+            value={taskStartTime}
+            onChange={(e) => setTaskStartTime(e.target.value)}
+          />
+
+          <label className="text-sm font-medium">Task End Time</label>
+          <input
+            type="datetime-local"
+            className="w-full px-3 py-2 border rounded-lg bg-white"
+            value={taskEndTime}
+            onChange={(e) => setTaskEndTime(e.target.value)}
+          />
+
+          {/* Assigned Time Slot */}
+          <label className="text-sm font-medium">Assigned Time Slot</label>
+          <select
+            className="w-full px-3 py-2 border rounded-lg bg-white"
+            value={assignedTimeSlot}
+            onChange={(e) => setAssignedTimeSlot(e.target.value)}
+          >
+            <option value="">Select Time Slot</option>
+            <option value="Morning">Morning</option>
+            <option value="Afternoon">Afternoon</option>
+            <option value="Evening">Evening</option>
+          </select>
+
+          {/* Location Mode */}
+          <label className="text-sm font-medium">Location Mode</label>
+          <select
+            className="w-full px-3 py-2 border rounded-lg bg-white"
+            value={locationMode}
+            onChange={(e) => setLocationMode(e.target.value)}
+          >
+            <option value="">Select Location Mode</option>
+            <option value="Remote">Remote</option>
+            <option value="Onsite">Onsite</option>
+          </select>
+        </>
+      )}
 
       {/* Validation Error */}
       {error && <p className="text-sm text-red-600 text-center">{error}</p>}

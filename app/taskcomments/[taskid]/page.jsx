@@ -8,11 +8,13 @@ import {
   collection,
   onSnapshot,
   addDoc,
-  serverTimestamp,
   Timestamp,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "@/firebasedata/config";
-import { ChevronDown, ChevronUp } from "lucide-react"
+import TaskCuratorSection from "../../../components/utils/TaskCuratorSection";
+
+
 
 const Page = () => {
   const { taskid } = useParams();
@@ -21,28 +23,20 @@ const Page = () => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-  const [showMore,setShowMore]=useState(false)
 
- 
 
-  useEffect(() => {
-    if (!taskid) return;
-
-    // 🔹 Fetch task document
-    const fetchTask = async () => {
+  const fetchTask = async () => {
       try {
         const docRef = doc(db, "createTaskCollection", taskid);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          const data = docSnap.data();
           setTaskData({
             id: docSnap.id,
             ref: docSnap.ref,
-            ...data,
+            ...docSnap.data(),
           });
         } else {
-          console.warn("No such task!");
           setTaskData(null);
         }
       } catch (error) {
@@ -51,9 +45,14 @@ const Page = () => {
       }
     };
 
+  // 🔹 Fetch task + stream comments
+  useEffect(() => {
+    if (!taskid) return;
+
+    
+
     fetchTask();
 
-    // 🔹 Stream comments
     const commentsRef = collection(
       db,
       "createTaskCollection",
@@ -67,7 +66,6 @@ const Page = () => {
         ...doc.data(),
       }));
 
-      // 🔹 Sort locally (latest → oldest)
       commentsData.sort((a, b) => {
         const timeA = a?.commentDate?.seconds
           ? a.commentDate.seconds * 1000
@@ -87,8 +85,6 @@ const Page = () => {
   // 🔹 Handle Add Comment
   const handleAddComment = async (e) => {
     e.preventDefault();
-
-    // 🔹 Validate input
     if (!newComment.trim()) {
       setErrorMsg("Comment cannot be empty!");
       return;
@@ -113,13 +109,11 @@ const Page = () => {
         isTaskUpdated: false,
         isFromPatron: false,
         isLM: true,
-        commentRecipientId: taskdata?.patronID,
+        commentRecipientId: taskdata?.patronID || taskdata?.patronRef?.id || "",
         isTaskStatusUpdate: false,
       };
 
       await addDoc(commentsRef, commentdoc);
-
-      // reset states
       setNewComment("");
       setErrorMsg("");
     } catch (error) {
@@ -128,161 +122,157 @@ const Page = () => {
     }
   };
 
-
   if (!taskdata) return <div>Loading...</div>;
- 
-  return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      {/* Task details (accordion) */}
-      <div className="flex-shrink-0 p-4">
-        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 space-y-4">
-          {/* Header */}
-          <div className="border-b border-gray-200 pb-3">
-            <h2 className="text-lg font-bold text-gray-900">
-              <span className="text-gray-600 font-medium">Task ID:</span>{" "}
-              {taskdata.taskID}
-            </h2>
-            <h3 className="text-base font-semibold text-gray-800">
-              {taskdata.taskSubject || "No Subject"}
-            </h3>
-          </div>
 
-          {/* Always visible (key fields) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <p className="flex flex-col">
-              <span className="font-semibold text-gray-700">Patron Name</span>
-              <span className="text-gray-600">
-                {taskdata?.patronName || taskdata.newPatronName || "N/A"}
-              </span>
+  const FeedbackHandel = async (feedbackdata) => {
+    try {
+      if (!feedbackdata?.taskId) {
+        console.error("❌ No taskId provided");
+        return;
+      }
+
+      const taskRef = doc(db, "createTaskCollection", feedbackdata.taskId);
+
+      const finalUpdatedata = {
+        curatorFeedBack: feedbackdata.feedback,
+        curatorTaskRating: feedbackdata.rating,
+        curatorTaskStatus: "Payment Due",
+        taskVerifiedTimeByLm: Timestamp.now(),
+      };
+           
+      await updateDoc(taskRef, finalUpdatedata);
+
+       fetchTask();
+    } catch (error) {
+      console.error("🔥 Error updating task:", error.message);
+    }
+  };
+
+  return (
+    <div className="h-screen bg-gray-50 flex flex-col">
+      {/* 🔹 Top Section (Task + Curator side by side, independent scrolls) */}
+      <div
+        className={`flex-1 min-h-[65%] max-h-[65%] grid ${
+          taskdata?.isCuratorTask ? "md:grid-cols-2" : "md:grid-cols-1"
+        } gap-4 p-4 bg-white border-b border-gray-200`}
+      >
+        {/* Task Details */}
+        <div className="rounded-xl border border-gray-200 p-4 overflow-y-auto">
+          <h2 className="text-lg font-bold text-gray-900">
+            Task ID: <span className="font-medium">{taskdata.taskID}</span>
+          </h2>
+          <h3 className="text-base font-semibold text-gray-800 mt-1">
+            {taskdata.taskSubject || "No Subject"}
+          </h3>
+
+          <div className="grid grid-cols-1 gap-3 text-sm mt-3">
+            <p>
+              <span className="font-semibold text-gray-700">Patron</span> —{" "}
+              {taskdata?.patronName || taskdata.newPatronName || "N/A"}
             </p>
-            <p className="flex flex-col">
-              <span className="font-semibold text-gray-700">Task Owner</span>
-              <span className="text-gray-600">
-                {taskdata.taskOwner || "N/A"}
-              </span>
+            <p>
+              <span className="font-semibold text-gray-700">Owner</span> —{" "}
+              {taskdata.taskOwner || "N/A"}
             </p>
-            <p className="flex flex-col">
-              <span className="font-semibold text-gray-700">Status</span>
-              <span className="inline-block px-2 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium w-fit">
+            <p>
+              <span className="font-semibold text-gray-700">Status</span> —{" "}
+              <span className="inline-block px-2 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">
                 {taskdata.taskStatusCategory || "N/A"}
               </span>
             </p>
-            <p className="flex flex-col">
-              <span className="font-semibold text-gray-700">Created At</span>
-              <span className="text-gray-600">
-                {taskdata?.createdAt
-                  ? new Date(taskdata.createdAt.seconds * 1000).toLocaleString(
-                      "en-IN"
-                    )
-                  : "N/A"}
-              </span>
+            <p>
+              <span className="font-semibold text-gray-700">Created</span> —{" "}
+              {taskdata?.createdAt
+                ? new Date(taskdata.createdAt.seconds * 1000).toLocaleString(
+                    "en-IN"
+                  )
+                : "N/A"}
             </p>
           </div>
 
-          {/* Accordion toggle */}
-          <button
-            onClick={() => setShowMore(!showMore)}
-            className="flex items-center gap-1 text-sm text-gray-800 hover:underline"
-          >
-            {showMore ? (
-              <>
-                Show Less <ChevronUp className="w-4 h-4" />
-              </>
-            ) : (
-              <>
-                Show More <ChevronDown className="w-4 h-4" />
-              </>
+          <div className="space-y-2 border-t border-gray-200 pt-3 text-sm mt-3">
+            <p>
+              <span className="font-semibold text-gray-700">Category</span> —{" "}
+              {taskdata.taskCategory || "N/A"}
+            </p>
+            <p>
+              <span className="font-semibold text-gray-700">Due Date</span> —{" "}
+              {taskdata?.taskDueDate?.seconds
+                ? new Date(
+                    taskdata.taskDueDate.seconds * 1000
+                  ).toLocaleDateString("en-IN")
+                : "N/A"}
+            </p>
+            {taskdata.taskDescription && (
+              <p>
+                <span className="font-semibold text-gray-700">Description</span>{" "}
+                — {taskdata.taskDescription}
+              </p>
             )}
-          </button>
-
-          {/* Hidden details */}
-          {showMore && (
-            <div className="space-y-3 border-t border-gray-200 pt-3 text-sm">
-              <p className="flex flex-col">
-                <span className="font-semibold text-gray-700">Category</span>
-                <span className="text-gray-600">
-                  {taskdata.taskCategory || "N/A"}
-                </span>
-              </p>
-              <p className="flex flex-col">
-                <span className="font-semibold text-gray-700">Due Date</span>
-                <span className="text-gray-600">
-                  {taskdata?.taskDueDate?.seconds
-                    ? new Date(
-                        taskdata.taskDueDate.seconds * 1000
-                      ).toLocaleDateString("en-IN")
-                    : "N/A"}
-                </span>
-              </p>
-              {taskdata.taskDescription && (
-                <p className="flex flex-col">
-                  <span className="font-semibold text-gray-700">
-                    Description
-                  </span>
-                  <span className="text-gray-600">
-                    {taskdata.taskDescription}
-                  </span>
-                </p>
-              )}
-            </div>
-          )}
+          </div>
         </div>
+
+        {/* Curator Section */}
+        {taskdata?.isCuratorTask && (
+          <div className="rounded-xl border border-gray-200 p-4 overflow-y-auto">
+            <TaskCuratorSection
+              taskdata={taskdata}
+              FeedbackHandel={FeedbackHandel}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Comments (main big area) */}
-      <div className="flex-1 px-6 min-h-0">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 h-full flex flex-col">
-          <div className="flex-shrink-0 p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800">
-              Latest Comments
-            </h3>
-          </div>
+      {/* 🔹 Bottom Section: Comments (smaller like YouTube) */}
+      <div className="min-h-[35%] max-h-[35%] flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-4 py-3 bg-gray-50">
+          <h3 className="text-md font-semibold text-gray-800 mb-2">Comments</h3>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {comments.length === 0 ? (
-              <div className="text-center py-10">
-                <p className="text-gray-500 text-sm">No comments yet.</p>
-              </div>
-            ) : (
-              comments.map((c) => (
+          {comments.length === 0 ? (
+            <div className="text-center py-4 text-gray-500 text-sm">
+              No comments yet.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {comments.map((c) => (
                 <div
                   key={c.id}
-                  className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors duration-150 border border-gray-100"
+                  className="flex gap-2 p-2 rounded-lg bg-white border border-gray-200 shadow-sm"
                 >
                   <img
                     src={c.comment_owner_img || "/default-avatar.png"}
                     alt={c.comment_owner_name}
-                    className="w-9 h-9 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                    className="w-6 h-6 rounded-full object-cover border border-gray-200"
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-gray-800 text-sm">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-800 text-xs">
                         {c.comment_owner_name}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-[10px] text-gray-500">
                         {c.commentDate?.seconds
                           ? new Date(
                               c.commentDate.seconds * 1000
-                            ).toLocaleString("en-IN")
+                            ).toLocaleString("en-IN", {
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            })
                           : "N/A"}
                       </span>
                     </div>
-                    <p className="text-gray-700 text-sm leading-relaxed">
+                    <p className="text-gray-700 text-xs leading-snug">
                       {c.comment_text}
                     </p>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Input field (bottom) */}
-
-      <div className="flex-shrink-0 p-6 bg-white border-t border-gray-200 shadow-lg">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex gap-3">
+        {/* Add Comment */}
+        <div className="flex-shrink-0 p-3 bg-white border-t border-gray-200">
+          <div className="flex gap-2">
             <input
               type="text"
               value={newComment}
@@ -290,26 +280,21 @@ const Page = () => {
                 setNewComment(e.target.value);
                 if (errorMsg) setErrorMsg("");
               }}
-              placeholder="Write a comment..."
-              className="flex-1 border border-gray-300 rounded-lg px-4 py-3 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent transition-all duration-200 shadow-sm"
+              placeholder="Add a comment..."
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-gray-400"
             />
             <button
               onClick={handleAddComment}
-              className="bg-gray-700 text-white px-6 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all duration-200 font-medium shadow-sm"
+              className="bg-gray-700 text-white px-4 py-1.5 rounded-lg text-xs hover:bg-gray-800"
             >
               Post
             </button>
           </div>
-
-          {errorMsg && (
-            <p className="text-gray-600 text-sm mt-2 px-1">{errorMsg}</p>
-          )}
+          {errorMsg && <p className="text-red-500 text-xs mt-1">{errorMsg}</p>}
         </div>
       </div>
     </div>
   );
-
-
 };
 
 export default Page;

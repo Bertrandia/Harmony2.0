@@ -1,41 +1,61 @@
 "use client";
-import React, { useContext, useState } from "react";
-
+import React, { useContext, useMemo, useState } from "react";
 import { TaskContext } from "../context/TaskContext";
-
 import { Input } from "@/components/ui/input";
-import { Search, CheckCircle } from "lucide-react";
+import { Search } from "lucide-react";
 import MytasksTaskCard from "../../components/utils/MytasksTaskCard";
 import PatronShimmer from "@/components/utils/PatronShimmer";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useParams, useSearchParams } from "next/navigation";
 
 function MyTasksPage() {
-  const { contexttasks, tasksLoading } = useContext(TaskContext); // 👈 from provider
+  const { contexttasks, tasksLoading } = useContext(TaskContext);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
+  const [showCuratorOnly, setShowCuratorOnly] = useState(false); // 👈 NEW toggle state
 
-  const filteredTasks = contexttasks.filter((task) => {
-    const matchesSearch =
-      (task?.taskInput?.toLowerCase() ?? "").includes(
-        searchTerm.toLowerCase()
-      ) ||
-      (task?.taskDescription?.toLowerCase() ?? "").includes(
-        searchTerm.toLowerCase()
+  const searchParams = useSearchParams();
+  const searchparamspatronId = searchParams.get("id");
+
+  const filteredTasks = useMemo(() => {
+    return contexttasks.filter((task) => {
+      // ✅ if patronId exists → only show that patron’s tasks
+      if (searchparamspatronId && task?.patronRef?.id !== searchparamspatronId)
+        return false;
+
+      const matchesSearch =
+        (task?.taskInput?.toLowerCase() ?? "").includes(
+          searchTerm.toLowerCase()
+        ) ||
+        (task?.taskDescription?.toLowerCase() ?? "").includes(
+          searchTerm.toLowerCase()
+        );
+
+      const matchesStatus =
+        filterStatus === "all" ||
+        (task?.taskStatusCategory?.toLowerCase() ?? "") ===
+          filterStatus.toLowerCase();
+
+      const matchesPriority =
+        filterPriority === "all" ||
+        (task?.priority?.toLowerCase() ?? "") === filterPriority.toLowerCase();
+
+      const matchesCurator = !showCuratorOnly || task?.isCuratorTask === true;
+
+      return (
+        matchesSearch && matchesStatus && matchesPriority && matchesCurator
       );
-
-    const matchesStatus =
-      filterStatus === "all" ||
-      (task?.taskStatusCategory?.toLowerCase() ?? "") ===
-        filterStatus.toLowerCase();
-
-    const matchesPriority =
-      filterPriority === "all" ||
-      (task?.priority?.toLowerCase() ?? "") === filterPriority.toLowerCase();
-
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
-
-  
+    });
+  }, [
+    contexttasks,
+    searchparamspatronId,
+    searchTerm,
+    filterStatus,
+    filterPriority,
+    showCuratorOnly,
+  ]);
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -65,6 +85,17 @@ function MyTasksPage() {
                   className="pl-10"
                 />
               </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="curator-toggle"
+                checked={showCuratorOnly}
+                onCheckedChange={setShowCuratorOnly}
+              />
+              <Label htmlFor="curator-toggle" className="text-sm">
+                Curator Tasks
+              </Label>
             </div>
 
             <div className="flex gap-2">
@@ -102,7 +133,7 @@ function MyTasksPage() {
       <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           {tasksLoading ? (
-            [1,2,3,4,5].map(()=><PatronShimmer></PatronShimmer>)
+            [1, 2, 3, 4, 5].map((i) => <PatronShimmer key={i} />)
           ) : filteredTasks.length > 0 ? (
             <div className="space-y-4">
               {filteredTasks.map((task) => (
@@ -110,7 +141,9 @@ function MyTasksPage() {
               ))}
             </div>
           ) : (
-             <div></div>
+            <div className="text-center text-sm text-gray-500">
+              No tasks found.
+            </div>
           )}
         </div>
       </div>

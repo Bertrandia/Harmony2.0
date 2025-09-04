@@ -218,7 +218,7 @@ function DashboardContent({ userDetails, contexttasks }) {
 
   const handleDrop = async (newStatusRaw) => {
     if (!draggedTask) return;
-    
+   
     
     const currentStatus = (draggedTask.taskStatusCategory || "").toLowerCase();
     const newStatus = (newStatusRaw || "").toLowerCase();
@@ -303,12 +303,14 @@ function DashboardContent({ userDetails, contexttasks }) {
     setAiTaskQueue([]);
     setCurrentDraggedTask(null);
   };
+
   const HandelGenerateTaskModelSubmit = async (
     formData,
     index,
     setSubmissionStatus,
     markFirstSubmitted
   ) => {
+    
     try {
       const patrondata = lmpatrons.filter(
         (p) => p.id == draggedTask?.patronRef?.id
@@ -356,7 +358,7 @@ function DashboardContent({ userDetails, contexttasks }) {
           ...formData,
           ...baseTaskFields,
         };
-        console.log(enrichedFormData);
+       
         const docRef = doc(db, "createTaskCollection", draggedTask.id);
         await updateDoc(docRef, enrichedFormData);
         setTasks((prev) =>

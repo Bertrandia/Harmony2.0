@@ -3,7 +3,14 @@ import { Phone, MapPin, User, MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-const PatronCard = ({ patrondata, onGenerate,handelCreateTask, handelAlltasks,handelAllExpenses}) => {
+const PatronCard = ({
+  patrondata,
+  onGenerate,
+  handelCreateTask,
+  handelAlltasks,
+  handelAllExpenses,
+  handelCreateTaskWithImage,
+}) => {
   const [imgError, setImgError] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // Toggle menu
 
@@ -77,7 +84,9 @@ const PatronCard = ({ patrondata, onGenerate,handelCreateTask, handelAlltasks,ha
             <h3 className="text-lg font-semibold text-card-foreground">
               {patronName || "No Name"}
             </h3>
-            <p className="text-sm text-muted-foreground">{email || "No email"}</p>
+            <p className="text-sm text-muted-foreground">
+              {email || "No email"}
+            </p>
           </div>
         </div>
 
@@ -97,7 +106,7 @@ const PatronCard = ({ patrondata, onGenerate,handelCreateTask, handelAlltasks,ha
               <button
                 className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                 onClick={() => {
-                   handelCreateTask?.(patrondata)
+                  handelCreateTask?.(patrondata);
                   setMenuOpen(false);
                 }}
               >
@@ -106,7 +115,16 @@ const PatronCard = ({ patrondata, onGenerate,handelCreateTask, handelAlltasks,ha
               <button
                 className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                 onClick={() => {
-                  handelAlltasks?.(patrondata)
+                  handelCreateTaskWithImage?.(patrondata);
+                  setMenuOpen(false);
+                }}
+              >
+                Create Task with image
+              </button>
+              <button
+                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                onClick={() => {
+                  handelAlltasks?.(patrondata);
                   setMenuOpen(false);
                 }}
               >
@@ -115,7 +133,7 @@ const PatronCard = ({ patrondata, onGenerate,handelCreateTask, handelAlltasks,ha
               <button
                 className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                 onClick={() => {
-                  handelAllExpenses?.(patrondata)
+                  handelAllExpenses?.(patrondata);
                   setMenuOpen(false);
                 }}
               >
