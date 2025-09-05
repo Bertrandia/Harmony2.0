@@ -17,7 +17,7 @@ const CashMemoForm = ({
   approvalIds,
   onRefreshApprovals,
   onCashmemoInvoiceDone,
-  selectedVendor
+  selectedVendor,
 }) => {
   const [vendorName, setVendorName] = useState("");
   const [file, setFile] = useState(null);
@@ -141,7 +141,7 @@ const CashMemoForm = ({
         setLoading(false);
         return;
       }
-     
+
       const lmRef = doc(db, "user", userDetails?.id);
       const parsedInvoiceDate = Timestamp.fromDate(new Date(invoiceDate));
       const totalItemsAmount = items.reduce(
@@ -169,7 +169,7 @@ const CashMemoForm = ({
         cashMemoDataForm,
         userDetails?.id
       );
-     
+
       const cashMemoTemplate = {
         cashMemoPdf: cashMemoPdfUrl || "",
         dateOfSubmission: Timestamp.now(),
@@ -213,7 +213,6 @@ const CashMemoForm = ({
   // 🔹 Step 1: define the submit handler function outside JSX
   const handleCashMemoInvoiceSubmit = async (formData) => {
     try {
-      
       setSubmitting(true);
 
       const taskRef = task?.id
@@ -233,9 +232,6 @@ const CashMemoForm = ({
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const year = date.getFullYear();
       const invoiceDateStr = `${day}${month}${year}`;
-
-    
-      
 
       // 🔹 Unique expense ID
       const uniqueExpenseId = (
@@ -258,7 +254,7 @@ const CashMemoForm = ({
         isInvoiceAdded: true,
         invoiceDate: cashMemoInfo?.invoiceDate,
         cashMemoRef: cashMemoInfo?.cashMemoRef || null,
-        isCashMemoApplied:true
+        isCashMemoApplied: true,
       };
       const parsedPaymenteDate = !formData?.paymentDate
         ? null
@@ -271,8 +267,10 @@ const CashMemoForm = ({
         billingModel: formData?.billingModel || "",
         taskID: task?.taskID || "",
         paymentMode: formData?.paymentMode || "",
-        invoiceAmount: formData?.invoiceAmount || 0,
-        transactionId:formData?.transactionId,
+        invoiceAmount: formData?.invoiceAmount
+          ? parseFloat(formData.invoiceAmount).toFixed(2)
+          : "0.00",
+        transactionId: formData?.transactionId,
         createdAt: Timestamp.now(),
         createdBy: userDetails?.email || "",
         isExpenseAdded: false,
@@ -294,11 +292,10 @@ const CashMemoForm = ({
         newPatronName: patron?.newPatronName || "",
         newPatronID: patron?.newPatronID || "",
         approvalRef,
-       ...invoicedatarelatedFields,
+        ...invoicedatarelatedFields,
       };
 
       // console.log(Finaldetails)
-     
 
       const lmInvoicesRef = collection(db, "LMInvoices");
       await addDoc(lmInvoicesRef, Finaldetails);
@@ -313,8 +310,8 @@ const CashMemoForm = ({
       const safeInvoiceAmount = isNaN(invoiceAmount) ? 0 : invoiceAmount;
 
       const updateadvanceApprovalFinance = {
-        budgetLeft: (safeBudgetLeft - safeInvoiceAmount),
-        budgetSpent: (safeBudgetSpend + safeInvoiceAmount),
+        budgetLeft: safeBudgetLeft - safeInvoiceAmount,
+        budgetSpent: safeBudgetSpend + safeInvoiceAmount,
       };
 
       const approvalDocRef = doc(
@@ -322,14 +319,12 @@ const CashMemoForm = ({
         "advanceApprovalFinance",
         formData?.approvalDocId
       );
-     
+
       await updateDoc(approvalDocRef, updateadvanceApprovalFinance);
 
       if (typeof onRefreshApprovals === "function") {
         await onRefreshApprovals();
       }
-
-      
 
       setCashMemoInvoiceSuccess(true);
     } catch (error) {

@@ -217,7 +217,7 @@ const addexpensesPage = () => {
         billingModel: formData.billingModel,
         taskID: task.taskID,
         paymentMode: formData.paymentMode,
-        invoiceAmount: formData.invoiceAmount,
+        invoiceAmount: (Number(formData.invoiceAmount) || 0).toFixed(2),
         createdAt: Timestamp.now(),
         createdBy: userDetails?.email || "",
         isExpenseAdded: false,

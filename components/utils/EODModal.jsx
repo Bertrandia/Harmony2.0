@@ -5,20 +5,22 @@ import React, { useEffect, useState } from "react";
 
 export default function EODModal({ open, onClose, onConfirm, patron }) {
   const [fields, setFields] = useState({
-    allTasksNum: false,
-    budgertLeft: false,
-    todaysExpense: false,
-    mtdExpense: false,
+    allTasksNum: true,
+    budgertLeft: true,
+    todaysExpense: true,
+    mtdExpense: true,
+    lmInvoicesExpense: false, // new field (default unchecked)
   });
 
   useEffect(() => {
     if (open) {
       // reset each time it's opened
       setFields({
-        allTasksNum: false,
-        budgertLeft: false,
-        todaysExpense: false,
-        mtdExpense: false,
+        allTasksNum: true,
+        budgertLeft: true,
+        todaysExpense: true,
+        mtdExpense: true,
+        lmInvoicesExpense: false,
       });
     }
   }, [open]);
@@ -75,6 +77,16 @@ export default function EODModal({ open, onClose, onConfirm, patron }) {
               onChange={() => toggle("mtdExpense")}
             />
             <span>EXPENSES MTD</span>
+          </label>
+
+          {/* ✅ New field */}
+          <label className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={fields.lmInvoicesExpense}
+              onChange={() => toggle("lmInvoicesExpense")}
+            />
+            <span>EXPENSES FROM LM INVOICES</span>
           </label>
         </div>
 

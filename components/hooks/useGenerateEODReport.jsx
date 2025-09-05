@@ -41,13 +41,41 @@ export function useGenerateEODReport() {
       doc.text(line, 200, 30 + i * 6, { align: "right" });
     });
 
+    const formatDate = (date) => {
+      if (!date) return "—";
+
+      let d;
+
+      // Firestore Timestamp
+      if (date.toDate) {
+        d = date.toDate();
+      }
+      // JS Date
+      else if (date instanceof Date) {
+        d = date;
+      }
+      // ISO string or other string
+      else if (typeof date === "string") {
+        d = new Date(date);
+        if (isNaN(d.getTime())) return "—";
+      } else {
+        return "—";
+      }
+
+      // ✅ Format as dd/mm/yy
+      return new Intl.DateTimeFormat("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+      }).format(d);
+    };
     // === TASKS TABLE ===
     const tableData = tasks.map((t, i) => [
       i + 1,
-      t.details || "—",
-      t.update || "—",
-      t.status || "—",
-      t.dueDate || "—",
+      t.taskSubject || "—",
+      t.taskStatusCategory || "—",
+      t.taskStatusCategory || "—",
+      formatDate(t.taskDueDate),
     ]);
 
     autoTable(doc, {

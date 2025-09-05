@@ -107,12 +107,12 @@ const MytasksTaskCard = ({ task }) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-2">
               <h3 className="text-lg font-semibold text-card-foreground group-hover:text-primary transition-colors">
-                {task?.taskInput || "No Task Input"}
+                {task?.taskSubject|| "No Task Input"}
               </h3>
             </div>
             <div className="flex items-center gap-3 mb-2">
               <h6 className="text-l font-semibold text-card-foreground group-hover:text-primary transition-colors">
-                PATRON NAME :{task?.partonName || "N/A"}
+                PATRON NAME :{task?.partonName || task?.newPatronName || "N/A"}
               </h6>
             </div>
 

@@ -14,19 +14,31 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GeneratedTaskFormModal from "@/components/utils/GeneratedTaskFormModal";
-import { addDoc, collection, doc, Timestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDocs,
+  limit,
+  query,
+  Timestamp,
+  where,
+} from "firebase/firestore";
 import { db } from "@/firebasedata/config";
 import { format } from "date-fns";
 import PatronShimmer from "../../components/utils/PatronShimmer";
 import { useRouter } from "next/navigation";
+import { TaskContext } from "../context/TaskContext";
 
 const Page = () => {
   const { lmpatrons } = useContext(LMPatronContext);
-    const router = useRouter();
+  const { contexttasks, tasksLoading } = useContext(TaskContext);
+  const router = useRouter();
   const { userDetails } = useAuth();
   const { generateEODReport } = useGenerateEODReport();
   const { isLoading, generateTasks } = useGeminiGenerateTask(gapi);
-  const {isImageLoading,generateTasksFromImage}=useGeminiGenerateTaskWithImage(gapi)
+  const { isImageLoading, generateTasksFromImage } =
+    useGeminiGenerateTaskWithImage(gapi);
 
   const [aishowModal, setAiShowModal] = useState(false);
   const [aiTaskQueue, setAiTaskQueue] = useState([]);
@@ -81,21 +93,20 @@ const Page = () => {
   }
 
   // Utility: Convert File -> Base64
-const convertImageToBase64 = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
+  const convertImageToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
 
-    reader.onload = () => {
-      // Remove the "data:image/png;base64," prefix
-      const base64String = reader.result.split(",")[1];
-      resolve(base64String);
-    };
+      reader.onload = () => {
+        // Remove the "data:image/png;base64," prefix
+        const base64String = reader.result.split(",")[1];
+        resolve(base64String);
+      };
 
-    reader.onerror = (error) => reject(error);
-  });
-};
-
+      reader.onerror = (error) => reject(error);
+    });
+  };
 
   const handleOpenModal = (patron) => {
     setSelectedPatron(patron);
@@ -115,7 +126,7 @@ const convertImageToBase64 = (file) => {
   };
 
   const handelAlltasks = (patrondata) => {
-     router.push(`/mytasks?id=${patrondata.id}`);
+    router.push(`/mytasks?id=${patrondata.id}`);
   };
 
   const handelAllExpenses = (patrondata) => {
@@ -139,19 +150,137 @@ const convertImageToBase64 = (file) => {
     },
   ];
 
-  const handleConfirmGenerate = (fields) => {
+  const handleConfirmGenerate = async (fields) => {
     if (!selectedPatron) return;
+        
+    let todaysExpense = 0;
+    let mtdExpense = 0;
+    let advanceLeftAmout = 0;
+  
+  
 
     const summary = {};
-    if (fields.allTasksNum) summary.allTasksNum = 1;
-    if (fields.budgertLeft) summary.budgertLeft = 1000.0;
-    if (fields.todaysExpense) summary.todaysExpense = 72.0;
-    if (fields.mtdExpense) summary.mtdExpense = 22372.0;
+      const patronRef = doc(db, "addPatronDetails", selectedPatron.id);
 
-    const tasks = buildTasksForPatron(selectedPatron);
+    const tasks = contexttasks.filter(
+      (task) =>
+        task.patronRef?.id === selectedPatron.id &&
+        (task?.taskStatusCategory === "To be Started" ||
+          task?.taskStatusCategory === "In Process") &&
+        task?.isTaskDisabled === false
+    );
 
-    generateEODReport(summary, tasks, selectedPatron);
-    setShowModal(false);
+    if (fields.allTasksNum) {
+      const totalTasksNumber = contexttasks.filter(
+        (t) =>
+          t.patronRef?.id === patronRef?.id &&
+          t?.taskStatusCategory !== "Cancelled" &&
+          t?.isTaskDisabled === false
+      ).length;
+
+     
+
+      summary.allTasksNum = totalTasksNumber;
+    }
+
+  
+  
+    if (fields.budgertLeft) {
+      const q = query(
+        collection(db, "mainNewApprovalManagement"),
+        where("patronRef", "==", patronRef),
+        where("approvalStatus", "==", "Approved"),
+        limit(1)
+      );
+
+      const snap = await getDocs(q);
+
+      if (!snap.empty) {
+        const data = snap.docs[0].data();
+        advanceLeftAmout = parseFloat(data.budgetLeft) || 0;
+        summary.budgertLeft = advanceLeftAmout;
+      } else {
+        advanceLeftAmout = 0;
+      }
+    }
+
+    if (fields.lmInvoicesExpense) {
+    console.log("lm")
+      const q = query(
+        collection(db, "LMInvoices"),
+        where("patronRef", "==", patronRef)
+      );
+      const snap = await getDocs(q);
+
+      const today = new Date();
+      const todayStart = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
+      );
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      snap.forEach((docSnap) => {
+        const data = docSnap.data();
+        const amount = parseFloat(data.invoiceAmount) || 0;
+        const date = data.createdAt?.toDate?.() || null;
+
+        if (date) {
+          if (fields.todaysExpense) {
+            if (date >= todayStart) todaysExpense += amount;
+          }
+
+          if (fields.mtdExpense) {
+            if (date >= monthStart) mtdExpense += amount;
+          }
+        }
+      });
+    }
+
+    if (!fields.lmInvoicesExpense) {
+      
+      const q = query(
+        collection(db, "crmExpenseApproval"),
+        where("patronRef", "==", patronRef)
+      );
+      const snap = await getDocs(q);
+
+      const today = new Date();
+      const todayStart = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
+      );
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      snap.forEach((docSnap) => {
+        const data = docSnap.data();
+        const amount = parseFloat(data.totalAmount) || 0;
+        const date = data.createdAt?.toDate?.() || null;
+
+        if (date) {
+          if (fields.todaysExpense) {
+            if (date >= todayStart) todaysExpense += amount;
+          }
+
+          if (fields.mtdExpense) {
+            if (date >= monthStart) mtdExpense += amount;
+          }
+        }
+      });
+    }
+
+    if(fields.mtdExpense){
+      summary.mtdExpense=mtdExpense
+
+    }
+    if(fields.todaysExpense){
+      summary.todaysExpense=todaysExpense
+    }
+
+   generateEODReport(summary, tasks, selectedPatron);
+   setShowModal(false);
+
   };
 
   const handleCreateTaskInput = async () => {
@@ -194,7 +323,7 @@ const convertImageToBase64 = (file) => {
       // Convert to base64
       const base64Image = await convertImageToBase64(taskImage);
 
-      const generated= await generateTasksFromImage(base64Image);
+      const generated = await generateTasksFromImage(base64Image);
       if (generated && generated.length > 0) {
         setAiTaskQueue(generated);
         setAiShowModal(true);
@@ -205,10 +334,6 @@ const convertImageToBase64 = (file) => {
           "No tasks generated. Please provide a proper Image to generate tasks."
         );
       }
-
-      
-
-      
     } catch (err) {
       console.error("Image conversion failed:", err);
       setTaskError("Failed to process image. Try again.");
@@ -231,7 +356,7 @@ const convertImageToBase64 = (file) => {
   ) => {
     try {
       const patrondata = taskPatron;
-      console.log(patrondata)
+      console.log(patrondata);
       // Guard: Required fields check
       if (
         !patrondata?.id ||
@@ -300,17 +425,16 @@ const convertImageToBase64 = (file) => {
         taskAssignDate: Timestamp.now(),
         taskInput: taskInput,
       };
-      
+
       const enrichedFormData = {
         ...baseTaskFields,
         ...formData,
       };
-       
+
       const docRef = await addDoc(
         collection(db, "createTaskCollection"),
         enrichedFormData
       );
-     
 
       if (index === 0) {
         setSubmissionStatus((prev) => ({
@@ -349,7 +473,7 @@ const convertImageToBase64 = (file) => {
 
   return (
     <div className="p-4">
-      {(isLoading || isImageLoading ) && <FullPageLoader />}
+      {(isLoading || isImageLoading) && <FullPageLoader />}
 
       {/* Search Bar */}
       <div className="mb-4 w-full max-w relative">
