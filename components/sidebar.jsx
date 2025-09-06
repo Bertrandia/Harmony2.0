@@ -19,10 +19,10 @@ import { useTheme } from "next-themes";
 
 const navigationItems = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
-  { name: "Chat", href: "/chat", icon: MessageSquare },
-  { name: "My-tasks", href: "/mytasks", icon: LayoutDashboard },
+  { name: "PatronOS Chat", href: "/chat", icon: MessageSquare },
+  { name: "MY-Tasks", href: "/mytasks", icon: LayoutDashboard },
   {
-    name: "All-Lm-Invoices",
+    name: "All-LM-Invoices",
     href: "/allLMInvoicesList",
     icon: FileText
   },

@@ -15,6 +15,7 @@ import { gapi } from "../../components/constants";
 import { format } from "date-fns";
 import TaskCard from "../../components/utils/lmtaskcard";
 import AiScoreLoader from "../../components/utils/AiScoreLoader";
+import TaskCardShimmer from "../../components/utils/TaskCardsShimmer";
 import {
   doc,
   collection,
@@ -23,8 +24,9 @@ import {
   addDoc,
   Timestamp,
 } from "firebase/firestore";
+import { ArrowRight } from "lucide-react";
 
-function DashboardContent({ userDetails, contexttasks }) {
+function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
   const { lmpatrons } = useContext(LMPatronContext);
 
   const [selectedPatron, setSelectedPatron] = useState("all");
@@ -121,12 +123,9 @@ function DashboardContent({ userDetails, contexttasks }) {
     if (note.length === 0) return;
     if (!pendingStatusUpdate || !draggedTask) return;
     if (!draggedTask.taskDueDate) {
-      setWarningMessage(
-        "⚠️ Task DUE Date Is MISSING"
-      );
+      setWarningMessage("⚠️ Task DUE Date Is MISSING");
       setShowWarning(true);
       return;
-     
     }
 
     function checkIfTaskDelayed(taskDueDate) {
@@ -218,8 +217,7 @@ function DashboardContent({ userDetails, contexttasks }) {
 
   const handleDrop = async (newStatusRaw) => {
     if (!draggedTask) return;
-   
-    
+
     const currentStatus = (draggedTask.taskStatusCategory || "").toLowerCase();
     const newStatus = (newStatusRaw || "").toLowerCase();
 
@@ -310,7 +308,6 @@ function DashboardContent({ userDetails, contexttasks }) {
     setSubmissionStatus,
     markFirstSubmitted
   ) => {
-    
     try {
       const patrondata = lmpatrons.filter(
         (p) => p.id == draggedTask?.patronRef?.id
@@ -358,7 +355,7 @@ function DashboardContent({ userDetails, contexttasks }) {
           ...formData,
           ...baseTaskFields,
         };
-       
+
         const docRef = doc(db, "createTaskCollection", draggedTask.id);
         await updateDoc(docRef, enrichedFormData);
         setTasks((prev) =>
@@ -441,22 +438,38 @@ function DashboardContent({ userDetails, contexttasks }) {
             }
           `}
           >
-            <h2 className="text-lg font-bold mb-3 text-gray-700">
-              {status}{" "}
+            <h2 className="text-lg font-bold mb-3 text-gray-700 flex items-center gap-2 whitespace-nowrap">
+              {/* Main status */}
+              {status} {/* Count */}
               <span className="text-sm text-gray-500">({taskList.length})</span>
+              {/* Arrow and next status */}
+              {status !== "Completed" && (
+                <span className="flex items-center gap-1 text-gray-400">
+                  <ArrowRight className="w-4 h-4" />
+                  <span className="text-[10px]">
+                    {status === "Created" && "To be Started"}
+                    {status === "To be Started" && "In Process"}
+                    {status === "In Process" && "Completed"}
+                  </span>
+                </span>
+              )}
             </h2>
 
             <div className="flex-1 overflow-y-auto pr-1 hide-scrollbar space-y-2">
-              {taskList.map((task) => (
-                <div
-                  key={task.id}
-                  draggable
-                  onDragStart={() => setDraggedTask(task)}
-                  className="cursor-move"
-                >
-                  <TaskCard task={task} />
-                </div>
-              ))}
+              {tasksLoading ? (
+                <TaskCardShimmer />
+              ) : (
+                taskList.map((task) => (
+                  <div
+                    key={task.id}
+                    draggable
+                    onDragStart={() => setDraggedTask(task)}
+                    className="cursor-move"
+                  >
+                    <TaskCard task={task} />
+                  </div>
+                ))
+              )}
             </div>
           </div>
         ))}
@@ -525,7 +538,11 @@ export default function DashboardPage() {
 
   return (
     <ProtectedLayout>
-      <DashboardContent userDetails={userDetails} contexttasks={contexttasks} />
+      <DashboardContent
+        userDetails={userDetails}
+        contexttasks={contexttasks}
+        tasksLoading={tasksLoading}
+      />
     </ProtectedLayout>
   );
 }

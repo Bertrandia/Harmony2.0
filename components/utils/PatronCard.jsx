@@ -130,7 +130,7 @@ const PatronCard = ({
               >
                 All Tasks
               </button>
-              <button
+              {/* <button
                 className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                 onClick={() => {
                   handelAllExpenses?.(patrondata);
@@ -138,7 +138,7 @@ const PatronCard = ({
                 }}
               >
                 All Expenses
-              </button>
+              </button> */}
             </div>
           )}
         </div>
@@ -174,14 +174,58 @@ const PatronCard = ({
 
       {/* Generate EOD */}
       <div className="mt-4">
-        <button
-          onClick={() => onGenerate?.(patrondata)}
-          className="px-3 py-1 text-sm font-medium rounded-lg bg-gradient-to-r from-gray-700 to-gray-500 
-               text-white shadow-md hover:from-gray-600 hover:to-gray-400 
-               active:scale-95 transition-all duration-200"
-        >
-          Generate EOD
-        </button>
+        {/* Actions (Small Buttons like Generate EOD) */}
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            onClick={() => onGenerate?.(patrondata)}
+            className="px-3 py-1 text-sm font-medium rounded-lg 
+        bg-gradient-to-r from-gray-700 to-gray-500 text-white 
+        shadow-md hover:from-gray-600 hover:to-gray-400 
+        active:scale-95 transition-all duration-200"
+          >
+            Generate EOD
+          </button>
+
+          <button
+            onClick={() => handelCreateTask?.(patrondata)}
+            className="px-3 py-1 text-sm font-medium rounded-lg 
+        bg-gradient-to-r from-gray-700 to-gray-500 text-white 
+        shadow-md hover:from-gray-600 hover:to-gray-400 
+        active:scale-95 transition-all duration-200"
+          >
+            Create Task
+          </button>
+
+          <button
+            onClick={() => handelCreateTaskWithImage?.(patrondata)}
+            className="px-3 py-1 text-sm font-medium rounded-lg 
+        bg-gradient-to-r from-gray-700 to-gray-500 text-white 
+        shadow-md hover:from-gray-600 hover:to-gray-400 
+        active:scale-95 transition-all duration-200"
+          >
+            Create Task with Image
+          </button>
+
+          <button
+            onClick={() => handelAlltasks?.(patrondata)}
+            className="px-3 py-1 text-sm font-medium rounded-lg 
+        bg-gradient-to-r from-gray-700 to-gray-500 text-white 
+        shadow-md hover:from-gray-600 hover:to-gray-400 
+        active:scale-95 transition-all duration-200"
+          >
+            All Tasks
+          </button>
+
+          {/* <button
+            onClick={() => handelAllExpenses?.(patrondata)}
+            className="px-3 py-1 text-sm font-medium rounded-lg 
+        bg-gradient-to-r from-gray-700 to-gray-500 text-white 
+        shadow-md hover:from-gray-600 hover:to-gray-400 
+        active:scale-95 transition-all duration-200"
+          >
+            All Expenses
+          </button> */}
+        </div>
       </div>
     </div>
   );

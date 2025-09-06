@@ -103,7 +103,7 @@ const Page = () => {
         comment_owner_name: userDetails?.display_name,
         comment_owner_img: userDetails?.photo_url,
         commentDate: Timestamp.now(),
-        isUpdate: false,
+        isUpdate: true,
         taskStatusCategory: taskdata?.taskStatusCategory,
         taskRef: taskdata?.ref,
         isTaskUpdated: false,

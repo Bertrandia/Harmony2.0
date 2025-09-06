@@ -152,15 +152,13 @@ const Page = () => {
 
   const handleConfirmGenerate = async (fields) => {
     if (!selectedPatron) return;
-        
+
     let todaysExpense = 0;
     let mtdExpense = 0;
     let advanceLeftAmout = 0;
-  
-  
 
     const summary = {};
-      const patronRef = doc(db, "addPatronDetails", selectedPatron.id);
+    const patronRef = doc(db, "addPatronDetails", selectedPatron.id);
 
     const tasks = contexttasks.filter(
       (task) =>
@@ -178,13 +176,9 @@ const Page = () => {
           t?.isTaskDisabled === false
       ).length;
 
-     
-
       summary.allTasksNum = totalTasksNumber;
     }
 
-  
-  
     if (fields.budgertLeft) {
       const q = query(
         collection(db, "mainNewApprovalManagement"),
@@ -205,7 +199,7 @@ const Page = () => {
     }
 
     if (fields.lmInvoicesExpense) {
-    console.log("lm")
+      console.log("lm");
       const q = query(
         collection(db, "LMInvoices"),
         where("patronRef", "==", patronRef)
@@ -238,7 +232,6 @@ const Page = () => {
     }
 
     if (!fields.lmInvoicesExpense) {
-      
       const q = query(
         collection(db, "crmExpenseApproval"),
         where("patronRef", "==", patronRef)
@@ -270,17 +263,15 @@ const Page = () => {
       });
     }
 
-    if(fields.mtdExpense){
-      summary.mtdExpense=mtdExpense
-
+    if (fields.mtdExpense) {
+      summary.mtdExpense = mtdExpense;
     }
-    if(fields.todaysExpense){
-      summary.todaysExpense=todaysExpense
+    if (fields.todaysExpense) {
+      summary.todaysExpense = todaysExpense;
     }
 
-   generateEODReport(summary, tasks, selectedPatron);
-   setShowModal(false);
-
+    generateEODReport(summary, tasks, selectedPatron);
+    setShowModal(false);
   };
 
   const handleCreateTaskInput = async () => {
@@ -475,7 +466,14 @@ const Page = () => {
     <div className="p-4">
       {(isLoading || isImageLoading) && <FullPageLoader />}
 
-      {/* Search Bar */}
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold text-foreground">
+          Patrons Dashboard
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Search and manage your patrons below
+        </p>
+      </div>
       <div className="mb-4 w-full max-w relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
@@ -530,7 +528,7 @@ const Page = () => {
                 Cancel
               </Button>
               <Button onClick={handleCreateTaskInput}>
-                Generate Task With Ai
+                Generate Task With AI
               </Button>
             </div>
           </div>
