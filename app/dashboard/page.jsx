@@ -25,6 +25,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { ArrowRight } from "lucide-react";
+import InfoNote from '../../components/utils/InfoNote'
 
 function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
   const { lmpatrons } = useContext(LMPatronContext);
@@ -120,7 +121,11 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
   }, [filteredTasks]);
 
   const handleNoteSubmit = async () => {
-    if (note.length === 0) return;
+    if (note.length === 0){
+      setWarningMessage("⚠️Note Not Be NULL");
+      setShowWarning(true);
+      return;
+    };
     if (!pendingStatusUpdate || !draggedTask) return;
     if (!draggedTask.taskDueDate) {
       setWarningMessage("⚠️ Task DUE Date Is MISSING");
@@ -391,6 +396,7 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
       {aiScoringLoading && <AiScoreLoader />}
 
       <div className="fixed top-4 right-4 z-50">
+         <InfoNote></InfoNote>
         <OnlineToggle userId={userDetails?.id} />
       </div>
 
@@ -415,7 +421,7 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
         ))}
       </select>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {Object.entries(groupedTasks).map(([status, taskList]) => (
           <div
             key={status}
@@ -444,13 +450,11 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
               <span className="text-sm text-gray-500">({taskList.length})</span>
               {/* Arrow and next status */}
               {status !== "Completed" && (
-                <span className="flex items-center gap-1 text-gray-400">
-                  <ArrowRight className="w-4 h-4" />
-                  <span className="text-[10px]">
-                    {status === "Created" && "To be Started"}
-                    {status === "To be Started" && "In Process"}
-                    {status === "In Process" && "Completed"}
+                <span className="flex flex-col items-center text-gray-400 -mt-1">
+                  <span className="text-[9px] leading-none text-orange-500">
+                    Drag To Update
                   </span>
+                  <ArrowRight className="w-12 h-4" />
                 </span>
               )}
             </h2>

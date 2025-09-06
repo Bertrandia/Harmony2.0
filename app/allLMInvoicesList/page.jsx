@@ -10,32 +10,32 @@ import {
   doc,
 } from "firebase/firestore";
 import { db } from "@/firebasedata/config";
-import { useRouter } from "next/navigation";
-import PatronShimmer from "@/components/utils/PatronShimmer";
 import { useAuth } from "../../app/context/AuthContext";
+import Lminvoiceshimmer from "@/components/utils/Lminvoiceshimmer";
 
-
-const Page = () => {
+const LMInvoicePage = () => {
   const { userDetails } = useAuth();
-  const router = useRouter();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchInvoices = async () => {
+      setLoading(true); // show shimmer immediately
       if (!userDetails?.id) {
         setLoading(false);
         return;
       }
+
       const lmRef = doc(db, "user", userDetails.id);
+
       try {
         const q = query(
           collection(db, "LMInvoices"),
           where("isExpenseAdded", "==", false),
           where("isInvoiceAdded", "==", true),
           where("isDisabled", "==", false),
-          where("lmRef", "==", lmRef) 
+          where("lmRef", "==", lmRef)
         );
 
         const querySnapshot = await getDocs(q);
@@ -45,114 +45,109 @@ const Page = () => {
           ...doc.data(),
         }));
 
-        data.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
+        data.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
         setInvoices(data);
       } catch (err) {
         console.error("Error fetching invoices:", err);
       } finally {
-        setLoading(false);
+        setLoading(false); // hide shimmer after fetch
       }
     };
 
     fetchInvoices();
   }, [userDetails?.id]);
 
-  const formatDate = (ts) => {
-    if (!ts) return "N/A";
-    if (ts instanceof Timestamp) {
-      return ts.toDate().toLocaleString(); // readable format
-    }
+  const formatDate = (timestamp) => {
+    if (!timestamp) return "N/A";
+    if (timestamp instanceof Timestamp) return timestamp.toDate().toLocaleString();
     return "Invalid date";
   };
 
-  // Filter invoices by lmName or newPatronName
-  const filteredInvoices = invoices.filter((inv) => {
-    const query = searchQuery.toLowerCase();
-    return (
-     
-      inv.newPatronName?.toLowerCase().includes(query)
-    );
-  });
-
-  if (loading) {
-    return [1, 2, 3, 4, 5].map((index) => {
-      return <PatronShimmer key={index}></PatronShimmer>;
-    });
-  }
+  const filteredInvoices = invoices.filter((inv) =>
+    (inv.newPatronName || inv.patronName || "")
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">All LM Invoices</h1>
+    <div className="p-6 max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">All LM Invoices</h1>
 
       {/* Search Bar */}
-      <input
-        type="text"
-        placeholder="Search by  Patron Name"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full p-2 mb-6 border rounded shadow-sm"
-      />
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Search by Patron Name"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+        />
+      </div>
 
-      {filteredInvoices.length === 0 ? (
-        <p>No invoices found</p>
+      {loading ? (
+        // Shimmer while loading
+        [1, 2, 3, 4, 5].map((i) => <Lminvoiceshimmer key={i} />)
+      ) : !loading && invoices.length === 0 ? (
+        // Show message if no invoices exist
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">No invoices found</p>
+        </div>
+      ) : !loading && filteredInvoices.length === 0 ? (
+        // Show message if search yields no result
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">No matching invoices found</p>
+          <p className="text-gray-400 text-sm mt-2">
+            Try adjusting your search criteria
+          </p>
+        </div>
       ) : (
-        <div className="grid gap-4">
+        // Render invoices
+        <div className="grid gap-6">
           {filteredInvoices.map((invoice) => (
             <div
               key={invoice.id}
-              className="bg-white rounded-2xl shadow-md p-6 border hover:shadow-lg transition"
+              className="bg-white rounded-2xl shadow-md p-6 border border-gray-200 hover:shadow-lg hover:border-gray-300 transition-all duration-300"
             >
               {/* Header */}
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-gray-800">
                   {invoice.lmName || "N/A"}
-                  <span className="text-gray-500 text-sm ml-2">
-                    (Patron:{" "}
-                    {invoice.newPatronName || invoice.patronName || "N/A"})
+                  <span className="text-gray-500 text-sm ml-2 font-normal">
+                    (Patron: {invoice.newPatronName || invoice.patronName || "N/A"})
                   </span>
                 </h2>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
                   {formatDate(invoice.createdAt)}
                 </span>
               </div>
 
               {/* Task Section */}
-              <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                <p className="text-sm text-gray-600 mt-1">
-                  TaskID: {invoice.taskID || "No description provided"}
+              <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  <span className="font-medium">Task ID:</span> {invoice.taskID || "N/A"}
                 </p>
-                <p className="text-sm font-medium text-gray-700">
-                  Task Subject: {invoice.taskSubject || "N/A"}
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  <span className="font-semibold">Subject:</span> {invoice.taskSubject || "N/A"}
                 </p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Description:{" "}
-                  {invoice.taskDescription || "No description provided"}
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Description:</span> {invoice.taskDescription || "No description provided"}
                 </p>
               </div>
 
               {/* Invoice Details */}
-              <div className="text-sm text-gray-700 space-y-1 mb-4">
-                <p>
-                  <span className="font-medium">Invoice DocID:</span>{" "}
-                  {invoice.id}
+              <div className="text-sm text-gray-700 space-y-2 mb-4">
+                <p className="flex items-center">
+                  <span className="font-medium text-gray-800 w-32">Invoice DocID:</span>
+                  <span className="text-gray-600 bg-gray-100 px-2 py-1 rounded text-xs font-mono">
+                    {invoice.id}
+                  </span>
                 </p>
-                <p>
-                  <span className="font-medium">Payment Mode:</span>{" "}
-                  {invoice.paymentMode || "N/A"}
+                <p className="flex items-center">
+                  <span className="font-medium text-gray-800 w-32">Payment Mode:</span>
+                  <span className="text-blue-600 font-medium">
+                    {invoice.paymentMode || "N/A"}
+                  </span>
                 </p>
-              </div>
-
-              {/* Button Row */}
-              <div className="flex justify-end">
-                {/* <button
-                 disabled={true}
-                  onClick={() =>
-                    router.push(`/addexpenselongform/${invoice.id}`)
-                  }
-                  className="px-5 py-2 bg-gray-600 text-orange-600 text-sm rounded-lg shadow hover:bg-gray-700"
-                >
-                  Add Expense
-                </button> */}
               </div>
             </div>
           ))}
@@ -162,4 +157,4 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default LMInvoicePage;

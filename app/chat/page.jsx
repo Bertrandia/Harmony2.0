@@ -38,6 +38,7 @@ import { format } from "date-fns";
 import { EllipsisVertical } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import  InfoNote from '../../components/utils/InfoNote'
 
 export default function ChatInterface() {
   const router = useRouter();
@@ -512,6 +513,7 @@ export default function ChatInterface() {
         <div className="p-4 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-semibold text-gray-900">Chats</h1>
+             <InfoNote></InfoNote>
           </div>
 
           {/* Mode Toggle */}
