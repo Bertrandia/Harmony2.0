@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import InfoNote from "./InfoNote";
 
 export default function EODModal({ open, onClose, onConfirm, patron }) {
   const [fields, setFields] = useState({
@@ -27,19 +28,34 @@ export default function EODModal({ open, onClose, onConfirm, patron }) {
 
   if (!open) return null;
 
-  const toggle = (key) =>
-    setFields((f) => ({ ...f, [key]: !f[key] }));
+  const toggle = (key) => setFields((f) => ({ ...f, [key]: !f[key] }));
+
+  const content = {
+    "With MTD":
+      "Shows the total Month-to-Date (MTD) expenses made by the Lifestyle Manager (LM) on behalf of the patron.",
+    "With Expenses Today":
+      "Displays the total expenses recorded today by the LM on behalf of the patron.",
+    "With Advance Left":
+      "Indicates the remaining budget available in the patron’s approval ID.",
+    "Total Tasks Number":
+      "Represents the cumulative number of tasks assigned by the patron to date.",
+    "Expenses from LM Invoice":
+      "Calculates MTD and Today’s expenses based only on entries submitted through the LM’s short expense form (invoices).",
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
       <div className="w-full max-w-md rounded-2xl bg-white text-gray-900 dark:bg-neutral-900 dark:text-white shadow-xl">
-        <div className="px-5 py-4 border-b border-gray-200 dark:border-neutral-800">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-neutral-800 flex items-center justify-between">
           <div className="text-lg font-semibold">
             Generate EOD {patron?.name ? `— ${patron.name}` : ""}
+            <div className="text-xs text-gray-500 mt-1">
+              Select which summary fields to include in the EOD.
+            </div>
           </div>
-          <div className="text-xs text-gray-500 mt-1">
-            Select which summary fields to include in the EOD.
-          </div>
+          {/* ✅ Info button at top right */}
+          <InfoNote content={content} />
         </div>
 
         <div className="px-5 py-4 space-y-3">

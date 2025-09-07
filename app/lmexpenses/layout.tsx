@@ -3,7 +3,7 @@ import React from 'react';
 import ProtectedLayout from '@/components/ProtectedLayout';
 
 
-export default function ChatLayout({ children }: { children: React.ReactNode }) {
+export default function LmExpenesesLayout({ children }: { children: React.ReactNode }) {
   return (
   <ProtectedLayout>
     

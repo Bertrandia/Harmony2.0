@@ -20,15 +20,20 @@ import { useTheme } from "next-themes";
 const navigationItems = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "PatronOS Chat", href: "/chat", icon: MessageSquare },
-  { name: "MY-Tasks", href: "/mytasks", icon: LayoutDashboard },
+  { name: "My-Tasks", href: "/mytasks", icon: LayoutDashboard },
   {
     name: "All-LM-Invoices",
     href: "/allLMInvoicesList",
     icon: FileText
   },
   {
-    name: "MY-Patrons",
+    name: "My-Patrons",
     href: "/mypatrons",
+    icon:  Users,
+  },
+  {
+    name: "LM-Expenses",
+    href: "/lmexpenses",
     icon:  Users,
   },
 ];

@@ -25,7 +25,8 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { ArrowRight } from "lucide-react";
-import InfoNote from '../../components/utils/InfoNote'
+import InfoNote from "../../components/utils/InfoNote";
+import { timeStamp } from "console";
 
 function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
   const { lmpatrons } = useContext(LMPatronContext);
@@ -121,11 +122,11 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
   }, [filteredTasks]);
 
   const handleNoteSubmit = async () => {
-    if (note.length === 0){
+    if (note.length === 0) {
       setWarningMessage("⚠️Note Not Be NULL");
       setShowWarning(true);
       return;
-    };
+    }
     if (!pendingStatusUpdate || !draggedTask) return;
     if (!draggedTask.taskDueDate) {
       setWarningMessage("⚠️ Task DUE Date Is MISSING");
@@ -155,7 +156,7 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
         valueScore: extraOrdinaryScoreOrValueScore?.valueScore || 15,
       };
     }
-
+      const userRef=doc(db,"user",userDetails?.id)
     try {
       const docRef = doc(db, "createTaskCollection", draggedTask.id);
       const statusLowerCaseName = pendingStatusUpdate
@@ -186,6 +187,9 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
           isUpdate: true,
           taskStatusCategory: pendingStatusUpdate,
           taskRef: docRef,
+          timeStamp:Timestamp.now(),
+          comment_owner_ref:userRef || ""
+
         };
 
         await addDoc(commentDocRef, commentDoc);
@@ -357,8 +361,8 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
 
       if (index === 0) {
         const enrichedFormData = {
-          ...formData,
           ...baseTaskFields,
+          ...formData,
         };
 
         const docRef = doc(db, "createTaskCollection", draggedTask.id);
@@ -374,8 +378,8 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
         const { id, patronId1, ...restDraggedTask } = draggedTask;
         const newTaskData = {
           ...restDraggedTask,
-          ...formData,
           ...baseTaskFields,
+          ...formData,
         };
         const docRef = await addDoc(
           collection(db, "createTaskCollection"),
@@ -389,6 +393,14 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
       setSubmissionStatus((prev) => ({ ...prev, [index]: "error" }));
     }
   };
+  const content = {
+  "Online/Offline Toggle": "Set Online when you’re available to chat with patrons.",
+  "Chat Availability": "Make sure you’re logged in before starting a chat.",
+  "Patron Search": "Select a patron from the dropdown to view that patron’s tasks.",
+  "Task Board": "Drag and drop a task to update its status.",
+  "Status Order": "Follow this sequence: Created → To Be Started → In Progress → Completed (don’t skip steps)."
+};
+
 
   return (
     <div className="p-6">
@@ -396,7 +408,7 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
       {aiScoringLoading && <AiScoreLoader />}
 
       <div className="fixed top-4 right-4 z-50">
-         <InfoNote></InfoNote>
+        <InfoNote content={content}></InfoNote>
         <OnlineToggle userId={userDetails?.id} />
       </div>
 

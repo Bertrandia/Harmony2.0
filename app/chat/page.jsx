@@ -38,7 +38,7 @@ import { format } from "date-fns";
 import { EllipsisVertical } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import  InfoNote from '../../components/utils/InfoNote'
+import InfoNote from "../../components/utils/InfoNote";
 
 export default function ChatInterface() {
   const router = useRouter();
@@ -221,8 +221,8 @@ export default function ChatInterface() {
   };
 
   const handleSendMessage = async () => {
-    if(chatMode === "hybrid" && selectedFile){
-      alert("In Hybrid Mode Image/Pdf is NOT ALLOWED ")
+    if (chatMode === "hybrid" && selectedFile) {
+      alert("In Hybrid Mode Image/Pdf is NOT ALLOWED ");
       return;
     }
     if (!newMessage.trim() && !selectedFile) return; // block empty message
@@ -504,6 +504,13 @@ export default function ChatInterface() {
     }
   };
 
+  const content = {
+    "Hybrid Chat":
+      "Patron chats with BERT AI, and you can view all messages. You may also reply directly, but ensure you are Online.",
+    "Patron Chat":
+      "Patron chats with you directly. You can respond in real time and also create tasks from patron messages.",
+  };
+
   return (
     <div className="flex h-screen bg-gray-100">
       {isLoading && <FullPageLoader />}
@@ -513,7 +520,7 @@ export default function ChatInterface() {
         <div className="p-4 bg-gray-50 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-semibold text-gray-900">Chats</h1>
-             <InfoNote></InfoNote>
+            <InfoNote content={content}></InfoNote>
           </div>
 
           {/* Mode Toggle */}
@@ -818,8 +825,6 @@ export default function ChatInterface() {
                               isUser ? "flex-row" : "flex-row-reverse"
                             )}
                           >
-                          
-
                             {isTaskCreated ? (
                               <button
                                 onClick={() => handleCancelTask(message)}

@@ -259,7 +259,7 @@ const CashMemoForm = ({
       const parsedPaymenteDate = !formData?.paymentDate
         ? null
         : Timestamp.fromDate(new Date(formData.paymentDate));
-
+    
       const Finaldetails = {
         vendorName: selectedVendor.vendorName,
         taskRef,
@@ -278,7 +278,7 @@ const CashMemoForm = ({
         invoiceDescription: formData?.invoiceDescription || "",
         isDisabled: false,
         patronName: patron?.patronName || "",
-        patronID: patron?.newPatronID || "",
+        patronID: patron?.clientCode || "",
         taskSubject: task?.taskSubject || "",
         taskDescription: task?.taskDescription || "",
         taskAssignDate: task?.taskAssignDate || "",
@@ -291,14 +291,18 @@ const CashMemoForm = ({
         isExpenseAddedBySpecialLM: false,
         newPatronName: patron?.newPatronName || "",
         newPatronID: patron?.newPatronID || "",
+        patronEmail:patron?.email || "",
         approvalRef,
+        isPdf:true,
+        pdfText:"",
+        volopayTransactionID:"",
         ...invoicedatarelatedFields,
       };
 
-      // console.log(Finaldetails)
+      console.log(Finaldetails)
 
-      const lmInvoicesRef = collection(db, "LMInvoices");
-      await addDoc(lmInvoicesRef, Finaldetails);
+      // const lmInvoicesRef = collection(db, "LMInvoices");
+      // await addDoc(lmInvoicesRef, Finaldetails);
 
       // 🔹 Budget updates
       const budgetLeft = parseFloat(formData?.budgetLeft);
@@ -320,13 +324,13 @@ const CashMemoForm = ({
         formData?.approvalDocId
       );
 
-      await updateDoc(approvalDocRef, updateadvanceApprovalFinance);
+      // await updateDoc(approvalDocRef, updateadvanceApprovalFinance);
 
-      if (typeof onRefreshApprovals === "function") {
-        await onRefreshApprovals();
-      }
+      // if (typeof onRefreshApprovals === "function") {
+      //   await onRefreshApprovals();
+      // }
 
-      setCashMemoInvoiceSuccess(true);
+      // setCashMemoInvoiceSuccess(true);
     } catch (error) {
       console.error("❌ Error in onSubmit:", error);
       alert(error.message || "Something went wrong while processing the form.");
