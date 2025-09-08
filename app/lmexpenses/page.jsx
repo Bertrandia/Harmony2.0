@@ -283,7 +283,7 @@ const ExpensesPage = () => {
         {filteredList.map((exp) => (
           <li
             key={exp.id}
-            className="p-4 bg-orange-50 rounded-lg shadow-md flex justify-between items-center"
+            className="p-4 bg-white-50 rounded-lg shadow-md flex justify-between items-center"
           >
             <div>
               <p>
@@ -312,7 +312,7 @@ const ExpensesPage = () => {
             <div>
               {exp.isInvoiceAdded === false ? (
                 <button
-                  className="bg-orange-500 text-white px-3 py-1 rounded"
+                  className="bg-black text-white px-3 py-1 rounded"
                   onClick={() => handleAddInvoice(exp.id)}
                 >
                   Add Invoice
@@ -322,13 +322,13 @@ const ExpensesPage = () => {
                   href={exp.invoice}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="border border-orange-500 text-orange-500 px-3 py-1 rounded inline-block"
+                  className="border bg-black text-white px-3 py-1 rounded inline-block"
                 >
                   View Invoice
                 </a>
               ) : (
                 <button
-                  className="border border-orange-500 text-orange-500 px-3 py-1 rounded"
+                  className="border border-gray-500 text-gary-500 px-3 py-1 rounded"
                   disabled
                 >
                   View Invoice
@@ -374,7 +374,7 @@ const ExpensesPage = () => {
           onClick={() => setActiveTab("invoiceAbsent")}
           className={`px-4 py-2 rounded ${
             activeTab === "invoiceAbsent"
-              ? "bg-orange-500 text-white"
+              ? "bg-black text-white"
               : "bg-gray-200"
           }`}
         >
@@ -383,9 +383,7 @@ const ExpensesPage = () => {
         <button
           onClick={() => setActiveTab("crmNotAdded")}
           className={`px-4 py-2 rounded ${
-            activeTab === "crmNotAdded"
-              ? "bg-orange-500 text-white"
-              : "bg-gray-200"
+            activeTab === "crmNotAdded" ? "bg-black text-white" : "bg-gray-200"
           }`}
         >
           CRM Not Added
@@ -393,9 +391,7 @@ const ExpensesPage = () => {
         <button
           onClick={() => setActiveTab("crmAdded")}
           className={`px-4 py-2 rounded ${
-            activeTab === "crmAdded"
-              ? "bg-orange-500 text-white"
-              : "bg-gray-200"
+            activeTab === "crmAdded" ? "bg-black text-white" : "bg-gray-200"
           }`}
         >
           CRM Added
@@ -468,7 +464,7 @@ const ExpensesPage = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-orange-500 text-white"
+                  className="px-4 py-2 rounded bg-black text-white"
                 >
                   Submit
                 </button>

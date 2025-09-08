@@ -1,6 +1,13 @@
 "use client";
 import React, { createContext, useState, useEffect, useContext } from "react";
-import { collection, query, where, doc, onSnapshot, orderBy } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  doc,
+  onSnapshot,
+  orderBy,
+} from "firebase/firestore";
 import { db } from "../../firebasedata/config";
 import { LMPatronContext } from "./LmPatronsContext";
 
@@ -24,10 +31,11 @@ export const TaskProvider = ({ children }) => {
 
     lmpatrons.forEach((patron) => {
       const patronRef = doc(db, "addPatronDetails", patron.id);
-        
+
       const q = query(
         collection(db, "createTaskCollection"),
         where("patronRef", "==", patronRef),
+        where("isTaskDisabled", "==", false), // ✅ fixed
         orderBy("createdAt", "desc")
       );
 
@@ -55,7 +63,11 @@ export const TaskProvider = ({ children }) => {
           setTasksLoading(false); // ✅ stop loading after first snapshot
         },
         (error) => {
-          console.error("Error listening to tasks for patron:", patron.id, error);
+          console.error(
+            "Error listening to tasks for patron:",
+            patron.id,
+            error
+          );
           setTasksLoading(false);
         }
       );
@@ -69,7 +81,9 @@ export const TaskProvider = ({ children }) => {
   }, [lmpatrons]);
 
   return (
-    <TaskContext.Provider value={{ contexttasks, setContextTasks, tasksLoading }}>
+    <TaskContext.Provider
+      value={{ contexttasks, setContextTasks, tasksLoading }}
+    >
       {children}
     </TaskContext.Provider>
   );

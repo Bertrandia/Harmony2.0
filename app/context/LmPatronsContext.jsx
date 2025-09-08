@@ -18,7 +18,8 @@ export const LMPatronProvider = ({ children }) => {
         const lmRef = doc(db, "user", userDetails.id);
         const q = query(
           collection(db, "addPatronDetails"),
-          where("lmRef", "==", lmRef)
+          where("lmRef", "==", lmRef),
+          where("patronStatus", "==", "Active") // ✅ added condition
         );
 
         const snapshot = await getDocs(q);

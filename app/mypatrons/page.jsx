@@ -199,7 +199,7 @@ const Page = () => {
     }
 
     if (fields.lmInvoicesExpense) {
-      console.log("lm");
+     
       const q = query(
         collection(db, "LMInvoices"),
         where("patronRef", "==", patronRef)
@@ -234,7 +234,8 @@ const Page = () => {
     if (!fields.lmInvoicesExpense) {
       const q = query(
         collection(db, "crmExpenseApproval"),
-        where("patronRef", "==", patronRef)
+        where("patronRef", "==", patronRef),
+        where("approvalStatus","==","financeApproved'")
       );
       const snap = await getDocs(q);
 
