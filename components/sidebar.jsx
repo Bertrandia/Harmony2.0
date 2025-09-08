@@ -13,7 +13,8 @@ import {
   Sun,
    FileText,
   MessageSquare,
-   Users
+   Users,
+  CreditCard
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -21,11 +22,11 @@ const navigationItems = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "PatronOS Chat", href: "/chat", icon: MessageSquare },
   { name: "My-Tasks", href: "/mytasks", icon: LayoutDashboard },
-  {
-    name: "All-LM-Invoices",
-    href: "/allLMInvoicesList",
-    icon: FileText
-  },
+  // {
+  //   name: "All-LM-Invoices",
+  //   href: "/allLMInvoicesList",
+  //   icon: FileText
+  // },
   {
     name: "My-Patrons",
     href: "/mypatrons",
@@ -34,7 +35,7 @@ const navigationItems = [
   {
     name: "LM-Expenses",
     href: "/lmexpenses",
-    icon:  Users,
+    icon: CreditCard,
   },
 ];
 

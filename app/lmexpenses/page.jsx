@@ -15,8 +15,6 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
-
-
 const ExpensesPage = () => {
   const { userDetails } = useAuth();
   const [invoiceAbsent, setInvoiceAbsent] = useState([]);
@@ -35,58 +33,55 @@ const ExpensesPage = () => {
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState("");
   const [formError, setFormError] = useState("");
+  const [invoiceAdding, setInvoiceAdding] = useState(false);
+
+  const fetchExpenses = async () => {
+    setLoading(true);
+    try {
+      const userRef = doc(db, "user", userDetails.id);
+
+      const q = query(
+        collection(db, "LMInvoices"),
+        where("lmRef", "==", userRef),
+        where("isDisabled", "==", false)
+      );
+
+      const querySnapshot = await getDocs(q);
+      const allDocs = querySnapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }));
+
+      const sortByCreatedAt = (a, b) => {
+        const aTime = a.createdAt?.toDate?.().getTime?.() ?? 0;
+        const bTime = b.createdAt?.toDate?.().getTime?.() ?? 0;
+        return bTime - aTime;
+      };
+
+      setInvoiceAbsent(
+        allDocs.filter((e) => e.isInvoiceAdded === false).sort(sortByCreatedAt)
+      );
+      setCrmNotAdded(
+        allDocs
+          .filter(
+            (e) => e.isInvoiceAdded === true && e.isExpenseAdded === false
+          )
+          .sort(sortByCreatedAt)
+      );
+      setCrmAdded(
+        allDocs
+          .filter((e) => e.isInvoiceAdded === true && e.isExpenseAdded === true)
+          .sort(sortByCreatedAt)
+      );
+    } catch (err) {
+      console.error("Error fetching expenses:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!userDetails?.id) return;
-
-    const fetchExpenses = async () => {
-      setLoading(true);
-      try {
-        const userRef = doc(db, "user", userDetails.id);
-
-        const q = query(
-          collection(db, "LMInvoices"),
-          where("lmRef", "==", userRef),
-          where("isDisabled", "==", false)
-        );
-
-        const querySnapshot = await getDocs(q);
-        const allDocs = querySnapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }));
-
-        const sortByCreatedAt = (a, b) => {
-          const aTime = a.createdAt?.toDate?.().getTime?.() ?? 0;
-          const bTime = b.createdAt?.toDate?.().getTime?.() ?? 0;
-          return bTime - aTime;
-        };
-
-        setInvoiceAbsent(
-          allDocs
-            .filter((e) => e.isInvoiceAdded === false)
-            .sort(sortByCreatedAt)
-        );
-        setCrmNotAdded(
-          allDocs
-            .filter(
-              (e) => e.isInvoiceAdded === true && e.isExpenseAdded === false
-            )
-            .sort(sortByCreatedAt)
-        );
-        setCrmAdded(
-          allDocs
-            .filter(
-              (e) => e.isInvoiceAdded === true && e.isExpenseAdded === true
-            )
-            .sort(sortByCreatedAt)
-        );
-      } catch (err) {
-        console.error("Error fetching expenses:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
 
     fetchExpenses();
   }, [userDetails?.id]);
@@ -109,49 +104,47 @@ const ExpensesPage = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+    setInvoiceAdding(true);
 
     // ✅ Validation
     if (!invoiceFile) {
       setFormError("Invoice file is required.");
+      setInvoiceAdding(false);
       return;
     }
     if (!invoiceNumber.trim()) {
       setFormError("Invoice number is required.");
+      setInvoiceAdding(false);
       return;
     }
     if (!invoiceDate) {
       setFormError("Invoice date is required.");
+      setInvoiceAdding(false);
       return;
     }
 
     setFormError("");
 
-    let invoiceUrl = "";
-    let base64String = "";
-    let extractedText = "";
-    let uniqueExpenseId = "";
-    let isPdf = {};
-
     try {
       const invoiceRef = doc(db, "LMInvoices", selectedInvoiceId);
 
-      // 🔹 First, get existing doc
+      // 🔹 Fetch existing invoice
       const docSnap = await getDoc(invoiceRef);
       if (!docSnap.exists()) {
         setFormError("Invoice not found!");
+        setInvoiceAdding(false);
         return;
       }
       const existingData = docSnap.data();
-      console.log("Existing invoice:", existingData);
 
-      // 🔹 1. Generate uniqueExpenseId (before upload)
+      // 🔹 Generate uniqueExpenseId
       const dateObj = new Date(invoiceDate);
       const day = String(dateObj.getDate()).padStart(2, "0");
       const month = String(dateObj.getMonth() + 1).padStart(2, "0");
       const year = dateObj.getFullYear();
       const invoiceDateStr = `${day}${month}${year}`;
 
-      uniqueExpenseId = (
+      const uniqueExpenseId = (
         (existingData?.newPatronName || "") +
         invoiceDateStr +
         (existingData?.invoiceAmount || "") +
@@ -163,31 +156,26 @@ const ExpensesPage = () => {
         .replaceAll(".", "")
         .toUpperCase();
 
-      // 🔹 2. Check if uniqueExpenseId already exists in LMInvoices
-      const invoicesRef = collection(db, "LMInvoices");
-      const allDocsSnap = await getDocs(invoicesRef);
+      // 🔹 Check for duplicates using Firestore query
+      const q = query(
+        collection(db, "LMInvoices"),
+        where("uniqueExpenseId", "==", uniqueExpenseId)
+      );
 
-      let duplicateFound = false;
-      allDocsSnap.forEach((docItem) => {
-        const data = docItem.data();
-        if (!data.uniqueExpenseId) return; // skip docs without uniqueExpenseId
-
-        if (
-          data.uniqueExpenseId === uniqueExpenseId &&
-          docItem.id !== selectedInvoiceId
-        ) {
-          duplicateFound = true;
-        }
-      });
+      const querySnapshot = await getDocs(q);
+      const duplicateFound = querySnapshot.docs.some(
+        (docItem) => docItem.id !== selectedInvoiceId
+      );
 
       if (duplicateFound) {
         setFormError(
           "Duplicate invoice detected. This invoice already exists."
         );
+        setInvoiceAdding(false);
         return;
       }
 
-      // 🔹 3. Upload file to Firebase Storage
+      // 🔹 Upload file to Firebase Storage
       const storage = getStorage();
       const fileName = `${Date.now()}_${invoiceFile.name}`;
       const fileRef = ref(
@@ -195,13 +183,16 @@ const ExpensesPage = () => {
         `users/${userDetails?.id}/createCashMemo/${fileName}`
       );
       await uploadBytes(fileRef, invoiceFile);
-      invoiceUrl = await getDownloadURL(fileRef);
+      const invoiceUrl = await getDownloadURL(fileRef);
 
-      // 🔹 4. Handle file type
+      // 🔹 Handle file type
+      let base64String = "";
+      let extractedText = "";
+      let isPdf = {};
+
       const extension = invoiceFile.name.split(".").pop().toLowerCase();
 
       if (["jpg", "jpeg", "png"].includes(extension)) {
-        // Convert to base64 for image
         const arrayBuffer = await invoiceFile.arrayBuffer();
         base64String = btoa(
           new Uint8Array(arrayBuffer).reduce(
@@ -211,7 +202,6 @@ const ExpensesPage = () => {
         );
         isPdf = { isPdf: false };
       } else if (extension === "pdf") {
-        // Extract text from PDF via API
         const formDataPDF = new FormData();
         formDataPDF.append("file", invoiceFile);
         isPdf = { isPdf: true };
@@ -219,9 +209,7 @@ const ExpensesPage = () => {
         const response = await axios.post(
           "https://pdf-to-text-api-632406467525.us-central1.run.app/extract-text",
           formDataPDF,
-          {
-            headers: { "Content-Type": "multipart/form-data" },
-          }
+          { headers: { "Content-Type": "multipart/form-data" } }
         );
 
         if (response.status === 200) {
@@ -231,27 +219,25 @@ const ExpensesPage = () => {
         }
       }
 
-      // 🔹 5. Log prepared data (instead of directly updating for now)
+      // 🔹 Prepare data to update
       const invoiceDataToUpdate = {
         isInvoiceAdded: true,
-        invoiceAvailable: "Yes",
         invoice: invoiceUrl,
-        invoiceNumber: invoiceNumber,
-       invoiceDate: Timestamp.fromDate(new Date(invoiceDate)),
+        invoiceNumber,
+        invoiceDate: Timestamp.fromDate(new Date(invoiceDate)),
         uniqueExpenseId,
         base64: base64String,
         pdfText: extractedText,
         ...isPdf,
-      
       };
 
-      console.log("🔹 Prepared Invoice Data:", invoiceDataToUpdate);
-      console.log(
-        "✅ Invoice ready to update. UniqueExpenseId:",
-        uniqueExpenseId
-      );
+      // 🔹 Update Firestore
+      await updateDoc(invoiceRef, invoiceDataToUpdate);
 
-      // Reset form
+      // 🔹 Refresh data
+      await fetchExpenses();
+
+      // 🔹 Reset form
       setShowModal(false);
       setInvoiceFile(null);
       setInvoiceNumber("");
@@ -259,6 +245,8 @@ const ExpensesPage = () => {
     } catch (error) {
       console.error("Error updating invoice:", error);
       setFormError("Failed to update invoice. Please try again.");
+    } finally {
+      setInvoiceAdding(false);
     }
   };
 
@@ -311,7 +299,7 @@ const ExpensesPage = () => {
                 <strong>Payment Mode:</strong> {exp.paymentMode ?? "-"}
               </p>
               <p>
-                <strong>Billing Model:</strong> {exp.billingModel ?? "-"}
+                <strong>Patron Name:</strong> {exp.patronName ?? "-"}
               </p>
               <p>
                 <strong>CreatedAT:</strong>{" "}
@@ -329,15 +317,22 @@ const ExpensesPage = () => {
                 >
                   Add Invoice
                 </button>
+              ) : exp.invoice ? (
+                <a
+                  href={exp.invoice}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="border border-orange-500 text-orange-500 px-3 py-1 rounded inline-block"
+                >
+                  View Invoice
+                </a>
               ) : (
-                // <button
-                //   className="border border-orange-500 text-orange-500 px-3 py-1 rounded"
-                //   onClick={() => console.log("View Invoice")}
-                //   disabled={true}
-                // >
-                //   View Invoice
-                // </button>
-                <p></p>
+                <button
+                  className="border border-orange-500 text-orange-500 px-3 py-1 rounded"
+                  disabled
+                >
+                  View Invoice
+                </button>
               )}
             </div>
           </li>
@@ -355,7 +350,14 @@ const ExpensesPage = () => {
 
   return (
     <div className="p-6 h-screen flex flex-col">
-      <h1 className="text-2xl font-bold mb-4">LM Expenses</h1>
+      <div className="mb-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            My Expenses
+          </h1>
+          <p className="mt-2 text-muted-foreground">Manage Your Expenses</p>
+        </div>
+      </div>
 
       {/* Search Bar */}
       <input
@@ -472,6 +474,15 @@ const ExpensesPage = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {invoiceAdding && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
+            <div className="loader mb-4"></div>
+            <p className="text-gray-700">Uploading Invoice, please wait...</p>
           </div>
         </div>
       )}

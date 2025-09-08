@@ -3,12 +3,17 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
+  getDocs,
+  query,
   Timestamp,
   updateDoc,
+  where,
 } from "firebase/firestore";
 import { db } from "@/firebasedata/config";
 import useHandleGeneratePDF from "../hooks/useHandleGeneratePDF";
 import CashMemoInvoiceForm from "../utils/cashMemoInvoiceForm";
+
 
 const CashMemoForm = ({
   userDetails,
@@ -171,6 +176,7 @@ const CashMemoForm = ({
       );
 
       const cashMemoTemplate = {
+        invoice: cashMemoPdfUrl || "",
         cashMemoPdf: cashMemoPdfUrl || "",
         dateOfSubmission: Timestamp.now(),
         invoiceDate: cashMemoDataForm.invoiceDate,
@@ -184,7 +190,7 @@ const CashMemoForm = ({
         reportingManagerRef: userDetails?.reportingMRef,
         soldTo: cashMemoDataForm.soldTo,
         submittedBy: userDetails?.email,
-        totalAmount: cashMemoDataForm.totalAmount,
+        totalAmount: String(Number(cashMemoDataForm.totalAmount).toFixed(2)),
         vendorName: cashMemoDataForm.vendorName,
         invoiceNumber: cashMemoDataForm.invoiceNumber,
       };
@@ -246,6 +252,17 @@ const CashMemoForm = ({
         .replaceAll(".", "")
         .toUpperCase();
 
+      const q = query(
+        collection(db, "LMInvoices"),
+        where("uniqueExpenseId", "==", uniqueExpenseId)
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        return;
+      }
+
       const invoicedatarelatedFields = {
         uniqueExpenseId,
         invoice: cashMemoInfo?.cashMemoPdfUrl || "",
@@ -259,7 +276,7 @@ const CashMemoForm = ({
       const parsedPaymenteDate = !formData?.paymentDate
         ? null
         : Timestamp.fromDate(new Date(formData.paymentDate));
-    
+
       const Finaldetails = {
         vendorName: selectedVendor.vendorName,
         taskRef,
@@ -291,18 +308,16 @@ const CashMemoForm = ({
         isExpenseAddedBySpecialLM: false,
         newPatronName: patron?.newPatronName || "",
         newPatronID: patron?.newPatronID || "",
-        patronEmail:patron?.email || "",
+        patronEmail: patron?.email || "",
         approvalRef,
-        isPdf:true,
-        pdfText:"",
-        volopayTransactionID:"",
+        isPdf: true,
+        pdfText: "",
+        volopayTransactionID: "",
         ...invoicedatarelatedFields,
       };
 
-      console.log(Finaldetails)
-
-      // const lmInvoicesRef = collection(db, "LMInvoices");
-      // await addDoc(lmInvoicesRef, Finaldetails);
+      const lmInvoicesRef = collection(db, "LMInvoices");
+      await addDoc(lmInvoicesRef, Finaldetails);
 
       // 🔹 Budget updates
       const budgetLeft = parseFloat(formData?.budgetLeft);
@@ -324,13 +339,13 @@ const CashMemoForm = ({
         formData?.approvalDocId
       );
 
-      // await updateDoc(approvalDocRef, updateadvanceApprovalFinance);
+      await updateDoc(approvalDocRef, updateadvanceApprovalFinance);
 
-      // if (typeof onRefreshApprovals === "function") {
-      //   await onRefreshApprovals();
-      // }
+      if (typeof onRefreshApprovals === "function") {
+        await onRefreshApprovals();
+      }
 
-      // setCashMemoInvoiceSuccess(true);
+      setCashMemoInvoiceSuccess(true);
     } catch (error) {
       console.error("❌ Error in onSubmit:", error);
       alert(error.message || "Something went wrong while processing the form.");

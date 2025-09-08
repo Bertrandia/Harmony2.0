@@ -109,7 +109,7 @@ export default function LmTaskCard({ task }) {
           <button
             onClick={() => {
               if (task?.id) {
-                router.push(`/taskfulldetails/${task.id}`);
+                router.push(`/taskcomments/${task.id}`);
               } else {
                 console.warn("No taskId in message");
               }

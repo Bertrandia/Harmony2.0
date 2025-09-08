@@ -153,6 +153,11 @@ const MytasksTaskCard = ({ task }) => {
               Curator Task
             </Badge>
           )}
+          {task?.isDelayed && (
+            <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200">
+              Delayed
+            </Badge>
+          )}
             </div>
 
             {/* Buttons */}
@@ -194,7 +199,7 @@ const MytasksTaskCard = ({ task }) => {
         </div>
       </div>
     </div>
-  );
+   );
 };
 
 export default MytasksTaskCard;

@@ -467,12 +467,14 @@ const Page = () => {
       {(isLoading || isImageLoading) && <FullPageLoader />}
 
       <div className="mb-4">
-        <h2 className="text-xl font-semibold text-foreground">
-          Patrons Dashboard
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Search and manage your patrons below
-        </p>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            My Patrons
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            Manage your personal and service requests
+          </p>
+        </div>
       </div>
       <div className="mb-4 w-full max-w relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />

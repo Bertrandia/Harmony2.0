@@ -186,6 +186,17 @@ const addexpensesPage = () => {
           .replaceAll("-", "")
           .replaceAll(".", "")
           .toUpperCase();
+
+        const q = query(
+          collection(db, "LMInvoices"),
+          where("uniqueExpenseId", "==", uniqueExpenseId)
+        );
+
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          return;
+        }
       }
 
       // Build invoice fields based on availability
@@ -244,8 +255,6 @@ const addexpensesPage = () => {
         ...isPdf,
       };
 
-     
-
       await addDoc(collection(db, "LMInvoices"), Finaldetails);
 
       const budgetLeft = parseFloat(formData.budgetLeft);
@@ -269,9 +278,9 @@ const addexpensesPage = () => {
         "advanceApprovalFinance",
         formData?.approvalDocId
       );
-    // console.log(updateadvanceApprovalFinance);
+      // console.log(updateadvanceApprovalFinance);
       await updateDoc(approvalDocRef, updateadvanceApprovalFinance);
-     
+
       setInvoiceSuccess(true);
 
       await fetchTaskAndPatron();
@@ -287,18 +296,20 @@ const addexpensesPage = () => {
 
   if (loading) return <div className="p-4 text-center">Loading...</div>;
 
- if (["to be started", "created"].includes(task.taskStatusCategory.toLowerCase())) {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="p-6 bg-yellow-100 border border-yellow-300 rounded-xl text-center max-w-lg">
-        <h1 className="text-red-600 font-semibold text-lg">
-          The task is in "{task.taskStatusCategory}" mode. <br />
-          You are not supposed to add an expense yet.
-        </h1>
+  if (
+    ["to be started", "created"].includes(task.taskStatusCategory.toLowerCase())
+  ) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="p-6 bg-yellow-100 border border-yellow-300 rounded-xl text-center max-w-lg">
+          <h1 className="text-red-600 font-semibold text-lg">
+            The task is in "{task.taskStatusCategory}" mode. <br />
+            You are not supposed to add an expense yet.
+          </h1>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto p-8 bg-gradient-to-br from-white via-gray-50 to-stone-50 rounded-3xl shadow-lg border border-gray-100 space-y-8">

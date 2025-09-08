@@ -23,7 +23,7 @@ import { LMPatronContext } from "../../context/LmPatronsContext";
 import GeneratedTaskFormModal from "@/components/utils/GeneratedTaskFormModal";
 import { format } from "date-fns";
 import Infonote from "../../../components/utils/InfoNote";
-
+import FullPageLoader from "@/components/utils/FullPageLoader";
 
 const Page = () => {
   const { taskid } = useParams();
@@ -49,6 +49,8 @@ const Page = () => {
   const [aiScoringLoading, setAiScoringLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [aiTaskQueue, setAiTaskQueue] = useState([]);
+
+  console.log(taskdata);
 
   const fetchTask = async () => {
     try {
@@ -205,7 +207,7 @@ const Page = () => {
       setErrorMsg("Comment cannot be empty!");
       return;
     }
-   const userRef=doc(db,"user",userDetails?.id)
+    const userRef = doc(db, "user", userDetails?.id);
     try {
       const commentsRef = collection(
         db,
@@ -227,8 +229,8 @@ const Page = () => {
         isLM: true,
         commentRecipientId: taskdata?.patronID || taskdata?.patronRef?.id || "",
         isTaskStatusUpdate: false,
-        timeStamp:Timestamp.now(),
-        comment_owner_ref:userRef
+        timeStamp: Timestamp.now(),
+        comment_owner_ref: userRef,
       };
 
       await addDoc(commentsRef, commentdoc);
@@ -306,7 +308,7 @@ const Page = () => {
 
     try {
       const docRef = doc(db, "createTaskCollection", taskdata.id);
-      const userRef =doc(db,'user',userDetails.id);
+      const userRef = doc(db, "user", userDetails.id);
       const statusLowerCaseName = newStatusCategory
         .toLowerCase()
         .replace(/\s+/g, "");
@@ -333,11 +335,10 @@ const Page = () => {
           comment_owner_img: userDetails?.photo_url || "",
           commentDate: Timestamp.now(),
           isUpdate: true,
-          taskStatusCategory:newStatusCategory,
+          taskStatusCategory: newStatusCategory,
           taskRef: docRef,
-          timeStamp:Timestamp.now(),
-          comment_owner_ref:userRef
-
+          timeStamp: Timestamp.now(),
+          comment_owner_ref: userRef,
         };
 
         await addDoc(commentDocRef, commentDoc);
@@ -500,7 +501,7 @@ const Page = () => {
       setSubmissionStatus((prev) => ({ ...prev, [index]: "error" }));
     }
   };
-  
+
   const content = {
     Created: "You can change status to To Be Started or Cancelled.",
     "To Be Started":
@@ -508,17 +509,17 @@ const Page = () => {
     "In Process": "You can change status to Completed, Cancelled, or On Hold.",
     Completed: "Status cannot be changed further.",
   };
-
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
       {aiScoringLoading && <AiScoreLoader />}
-      {isLoading && <AiScoreLoader />}
-      {/* 🔹 Top Section */}
-      <div className="flex-1 min-h-[60%] max-h-[60%] grid md:grid-cols-2 gap-4 p-4 bg-white border-b border-gray-200">
+      {isLoading && <FullPageLoader />}
+
+      {/* 🔹 Top Section - Two Columns */}
+      <div className="flex-shrink-0 grid md:grid-cols-2 gap-2 p-3 bg-white border-b border-gray-200">
         {/* Left Column: Task Details + More Details Accordion */}
-        <div className="flex flex-col gap-4 overflow-y-auto">
+        <div className="flex flex-col gap-2">
           {/* Task Details Card */}
-          <div className="rounded-xl border border-gray-200 p-4">
+          <div className="rounded-xl border border-gray-200 p-3">
             <h2 className="text-lg font-bold text-gray-900">
               Task ID: <span className="font-medium">{taskdata.taskID}</span>
             </h2>
@@ -526,7 +527,7 @@ const Page = () => {
               {taskdata.taskSubject || "No Subject"}
             </h3>
 
-            <div className="grid grid-cols-1 gap-3 text-sm mt-3">
+            <div className="grid grid-cols-1 gap-2 text-sm mt-3">
               <p>
                 <span className="font-semibold text-gray-700">Patron</span> —{" "}
                 {taskdata?.patronName || taskdata.newPatronName || "N/A"}
@@ -556,7 +557,7 @@ const Page = () => {
           <div className="rounded-xl border border-gray-200">
             <button
               onClick={() => setIsOpen((prev) => !prev)}
-              className="w-full flex justify-between items-center px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-t-xl"
+              className="w-full flex justify-between items-center px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-t-xl"
             >
               More Details
               <ChevronDown
@@ -567,7 +568,7 @@ const Page = () => {
             </button>
 
             {isOpen && (
-              <div className="px-4 pb-4 pt-2 text-sm text-gray-600 space-y-2">
+              <div className="px-3 pb-2 pt-1 text-sm text-gray-600 space-y-1 max-h-48 overflow-y-auto">
                 <p>
                   <span className="font-semibold">Created By:</span>{" "}
                   {taskdata?.createdBy || "N/A"}
@@ -647,31 +648,30 @@ const Page = () => {
           </div>
         </div>
 
-        {/* Right Column: Action Buttons + Curator Accordion */}
-        <div className="flex flex-col overflow-y-auto">
-          {/* Action Buttons Section */}
-          {getActionButtons().length > 0 && (
-            <div className="rounded-xl border border-gray-200 p-3 mb-4">
-              {(() => {
-                const { bg, text } = getStatusColor(
-                  taskdata.taskStatusCategory
-                );
-                return (
-                  <div className="flex">
-                    <h2 className="text-l font-bold mb-2 inline-block px-2 py-1 rounded">
-                      Task Status :
-                    </h2>
+        {/* Right Column: Task Status + Curator Accordion */}
+        <div className="flex flex-col gap-2">
+          {/* Task Status (always visible) */}
+          <div className="rounded-xl border border-gray-200 p-3">
+            {(() => {
+              const { bg, text } = getStatusColor(taskdata.taskStatusCategory);
+              return (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-l font-bold">Task Status:</h2>
                     <h3
-                      className={`text-l font-bold mb-2 inline-block px-2 py-1 rounded ${bg} ${text}`}
+                      className={`text-l font-bold px-2 py-1 rounded ${bg} ${text}`}
                     >
                       {taskdata.taskStatusCategory}
                     </h3>
-                    <div className="ml-10">
-                      <Infonote content={content}></Infonote>
-                    </div>
                   </div>
-                );
-              })()}
+                   <div className="ml-4">
+                    <Infonote content={content} />
+                   </div>
+                </div>
+              );
+            })()}
+
+            {getActionButtons().length > 0 && (
               <div className="flex gap-2 flex-wrap mt-2">
                 {getActionButtons().map((status) => {
                   const { bg, text } = getStatusColor(status);
@@ -686,15 +686,15 @@ const Page = () => {
                   );
                 })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Curator Accordion Section */}
           {taskdata?.isCuratorTask && (
             <div className="rounded-xl border border-gray-200">
               <button
                 onClick={() => setIsCuratorOpen((prev) => !prev)}
-                className="w-full flex justify-between items-center px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-t-xl"
+                className="w-full flex justify-between items-center px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-t-xl"
               >
                 Curator Details
                 <ChevronDown
@@ -705,7 +705,7 @@ const Page = () => {
               </button>
 
               {isCuratorOpen && (
-                <div className="px-4 pb-4 pt-2">
+                <div className="px-3 pb-2 pt-1 max-h-48 overflow-y-auto">
                   <TaskCuratorSection
                     taskdata={taskdata}
                     FeedbackHandel={FeedbackHandel}
@@ -717,8 +717,12 @@ const Page = () => {
         </div>
       </div>
 
-      {/* 🔹 Bottom Section (Comments) */}
-      <div className="min-h-[40%] max-h-[40%] flex flex-col border-t border-gray-200 bg-gray-50">
+      {/* 🔹 Full Width Comments Section */}
+      <div className="flex-1 flex flex-col min-h-0 mx-3 mb-3 rounded-xl border border-gray-200 bg-gray-50">
+        <div className="flex-shrink-0 px-4 py-3 bg-white border-b border-gray-200 rounded-t-xl">
+          <h3 className="text-sm font-semibold text-gray-700">Comments</h3>
+        </div>
+
         <div className="flex-1 overflow-y-auto px-4 py-3">
           {comments.length === 0 ? (
             <div className="text-center py-4 text-gray-500 text-sm">
@@ -752,11 +756,12 @@ const Page = () => {
                           : "N/A"}
                       </span>
                     </div>
-                     <p className="text-gray-700 text-xs leading-snug">Task Status:{c.taskStatusCategory}</p>
+                    <p className="text-gray-700 text-xs leading-snug">
+                      Task Status: {c.taskStatusCategory}
+                    </p>
                     <p className="text-gray-700 text-m leading-snug">
                       {c.comment_text}
                     </p>
-                   
                   </div>
                 </div>
               ))}
@@ -764,8 +769,8 @@ const Page = () => {
           )}
         </div>
 
-        {/* Input */}
-        <div className="flex-shrink-0 p-3 bg-white border-t border-gray-200">
+        {/* Comment Input */}
+        <div className="flex-shrink-0 p-3 bg-white border-t border-gray-200 rounded-b-xl">
           <div className="flex gap-2">
             <input
               type="text"
@@ -788,6 +793,7 @@ const Page = () => {
         </div>
       </div>
 
+      {/* Note Modal */}
       {showNoteModal && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-center justify-center">
           <div className="bg-white p-6 rounded-xl w-[400px] shadow-xl">
@@ -825,6 +831,7 @@ const Page = () => {
         </div>
       )}
 
+      {/* Generated Task Modal */}
       <GeneratedTaskFormModal
         isOpen={showModal}
         aiTasks={aiTaskQueue}

@@ -35,8 +35,10 @@ function MyTasksPage() {
 
       const matchesStatus =
         filterStatus === "all" ||
-        (task?.taskStatusCategory?.toLowerCase() ?? "") ===
-          filterStatus.toLowerCase();
+        (filterStatus === "Delayed"
+          ? task?.isDelayed === true
+          : (task?.taskStatusCategory?.toLowerCase() ?? "") ===
+            filterStatus.toLowerCase());
 
       const matchesPriority =
         filterPriority === "all" ||
