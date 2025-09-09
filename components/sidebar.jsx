@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../app/context/AuthContext";
+import Link from "next/link";
 
 import {
   Home,
@@ -11,10 +12,10 @@ import {
   Menu,
   X,
   Sun,
-   FileText,
+  FileText,
   MessageSquare,
-   Users,
-  CreditCard
+  Users,
+  CreditCard,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -30,7 +31,7 @@ const navigationItems = [
   {
     name: "My-Patrons",
     href: "/mypatrons",
-    icon:  Users,
+    icon: Users,
   },
   {
     name: "LM-Expenses",
@@ -86,7 +87,7 @@ export function Sidebar({ children }) {
                     const isActive = pathname === item.href;
                     return (
                       <li key={item.name}>
-                        <a
+                        <Link
                           href={item.href}
                           className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-medium transition-all duration-200 ${
                             isActive
@@ -103,7 +104,7 @@ export function Sidebar({ children }) {
                             aria-hidden="true"
                           />
                           {item.name}
-                        </a>
+                        </Link>
                       </li>
                     );
                   })}
@@ -155,17 +156,16 @@ export function Sidebar({ children }) {
                         const isActive = pathname === item.href;
                         return (
                           <li key={item.name}>
-                            <a
+                            <Link
                               href={item.href}
                               className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-medium transition-all duration-200 ${
                                 isActive
-                                  ? "bg-accent text-accent-foreground"
+                                  ? "bg-accent text-accent-foreground shadow-sm"
                                   : "text-muted-foreground hover:text-foreground hover:bg-accent"
                               }`}
-                              onClick={() => setSidebarOpen(false)}
                             >
                               <item.icon
-                                className={`h-5 w-5 shrink-0 ${
+                                className={`h-5 w-5 shrink-0 transition-colors ${
                                   isActive
                                     ? "text-accent-foreground"
                                     : "text-muted-foreground group-hover:text-foreground"
@@ -173,7 +173,7 @@ export function Sidebar({ children }) {
                                 aria-hidden="true"
                               />
                               {item.name}
-                            </a>
+                            </Link>
                           </li>
                         );
                       })}

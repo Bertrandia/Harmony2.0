@@ -221,12 +221,19 @@ export default function ChatInterface() {
   };
 
   const handleSendMessage = async () => {
+    
     if (chatMode === "hybrid" && selectedFile) {
       alert("In Hybrid Mode Image/Pdf is NOT ALLOWED ");
       return;
     }
     if (!newMessage.trim() && !selectedFile) return; // block empty message
     if (!selectedCustomer) return;
+
+    if(!userDetails.isOnline){
+          alert("Make Sure Your Are Online");
+          return;
+    }
+    
 
     setIsSending(true); // disable send button immediately
 

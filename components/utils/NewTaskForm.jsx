@@ -16,8 +16,8 @@ export default function NewTaskForm({
     initialData.task_subject || ""
   );
   const [description, setDescription] = useState(initialData.description || "");
-
-  const [priority, setPriority] = useState("");
+  const [taskSource, setTaskSource] = useState(null);
+  const [priority, setPriority] = useState("Medium");
   const [category, setCategory] = useState(null);
   const [subCategory, setSubCategory] = useState(null);
   const [categoryTag, setCategoryTag] = useState(null);
@@ -38,7 +38,7 @@ export default function NewTaskForm({
   useEffect(() => {
     setTaskSubject(initialData.task_subject || "");
     setDescription(initialData.description || "");
-    setPriority(initialData.priority || "");
+    setPriority(initialData.priority ?? "Medium");
     setDueDate(() => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -99,7 +99,8 @@ export default function NewTaskForm({
       !subCategory ||
       !categoryTag ||
       !dueDate ||
-      !priority
+      !priority ||
+      !taskSource
     ) {
       setError("Please fill in all required fields.");
       return;
@@ -124,6 +125,7 @@ export default function NewTaskForm({
     setError("");
 
     const payload = {
+      taskSource,
       taskSubject,
       taskDescription: description,
       aiCreatedCategory: initialData?.category || "",
@@ -142,9 +144,11 @@ export default function NewTaskForm({
       selectedHomeCuratorDepartment &&
       selectedHomeCuratorDepartment !== "none"
     ) {
-      payload.selectedHomeCuratorDepartment = selectedHomeCuratorDepartment.skill,
-      payload.selectedHomeCuratorDepartmentRef =selectedHomeCuratorDepartment.ref,
-      payload.taskStartTime = Timestamp.fromDate(new Date(taskStartTime));
+      (payload.selectedHomeCuratorDepartment =
+        selectedHomeCuratorDepartment.skill),
+        (payload.selectedHomeCuratorDepartmentRef =
+          selectedHomeCuratorDepartment.ref),
+        (payload.taskStartTime = Timestamp.fromDate(new Date(taskStartTime)));
       payload.taskEndTime = Timestamp.fromDate(new Date(taskStartTime));
       payload.assignedTimeSlot = assignedTimeSlot;
       payload.locationMode = locationMode;
@@ -152,9 +156,10 @@ export default function NewTaskForm({
       payload.curatorTaskStatus = "Not Assigned";
     } else {
       payload.isCuratorTask = false;
-        payload.curatorTaskStatus=""
+      payload.curatorTaskStatus = "";
     }
-  
+
+    
     onSubmit(payload, index);
   };
 
@@ -164,7 +169,21 @@ export default function NewTaskForm({
         {index === 0 ? "Original Task (Update)" : `New Task ${index}`}
       </h3>
 
-      {/* Task Subject */}
+      <label className="text-sm font-medium">
+        Task Source <span className="text-red-500">*</span>
+      </label>
+      <select
+        className="w-full px-3 py-2 border rounded-lg bg-white"
+        value={taskSource} // Make sure this state exists
+        onChange={(e) => setTaskSource(e.target.value)}
+      >
+        <option value="">Select Task Source</option>
+        <option value="On Call">On Call</option>
+        <option value="WhatsApp">WhatsApp</option>
+        <option value="Physical">Physical</option>
+        <option value="Text">Text</option>
+        <option value="Others">Others</option>
+      </select>
       <label className="text-sm font-medium">
         Task Subject <span className="text-red-500">*</span>
       </label>
@@ -280,7 +299,6 @@ export default function NewTaskForm({
         value={priority}
         onChange={(e) => setPriority(e.target.value)}
       >
-        <option value="">Select Priority</option>
         <option value="Medium">Medium</option>
         <option value="Low">Low</option>
         <option value="High">High</option>

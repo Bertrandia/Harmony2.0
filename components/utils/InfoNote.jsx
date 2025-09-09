@@ -17,10 +17,10 @@ export default function InfoNote({ content }) {
         <div className="space-y-3">
           {Object.entries(content).map(([key, value]) => (
             <div key={key} className="flex flex-col">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+              <span className="font-medium text-gray-800 uppercase tracking-wider mb-1">
                 {key.replace(/([A-Z])/g, " $1").trim()}
               </span>
-              <span className="text-gray-800 font-medium">
+              <span className="text-orange-800 font-medium text-xs">
                 {String(value) || "N/A"}
               </span>
             </div>

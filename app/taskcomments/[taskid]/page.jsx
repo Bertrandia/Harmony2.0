@@ -50,8 +50,6 @@ const Page = () => {
   const [showModal, setShowModal] = useState(false);
   const [aiTaskQueue, setAiTaskQueue] = useState([]);
 
-  console.log(taskdata);
-
   const fetchTask = async () => {
     try {
       const docRef = doc(db, "createTaskCollection", taskid);
@@ -234,6 +232,12 @@ const Page = () => {
       };
 
       await addDoc(commentsRef, commentdoc);
+      const docRef = doc(db, "createTaskCollection", taskid);
+      await updateDoc(docRef, {
+        lastComment: newComment.trim(),
+        lastCommentTime: Timestamp.now(),
+      });
+
       setNewComment("");
       setErrorMsg("");
     } catch (error) {
@@ -294,6 +298,7 @@ const Page = () => {
     const IsDelayed = checkIfTaskDelayed(taskdata?.taskDueDate);
 
     let scoredoc = {};
+    let completedDoc = {};
     if (extraOrdinaryScoreOrValueScore?.isExtraodinary == true) {
       scoredoc = {
         extraOrdinaryScore:
@@ -303,6 +308,12 @@ const Page = () => {
     if (extraOrdinaryScoreOrValueScore?.isValue == true) {
       scoredoc = {
         valueScore: extraOrdinaryScoreOrValueScore?.valueScore || 15,
+      };
+    }
+
+    if (newStatusCategory.toLowerCase() == "completed") {
+      completedDoc = {
+        taskCompletedDate: Timestamp.now(),
       };
     }
 
@@ -320,6 +331,7 @@ const Page = () => {
         lastComment: note,
         isDelayed: IsDelayed,
         ...scoredoc,
+        ...completedDoc,
       });
 
       const updatedDocSnap = await getDoc(docRef);
@@ -664,9 +676,9 @@ const Page = () => {
                       {taskdata.taskStatusCategory}
                     </h3>
                   </div>
-                   <div className="ml-4">
+                  <div className="ml-4">
                     <Infonote content={content} />
-                   </div>
+                  </div>
                 </div>
               );
             })()}

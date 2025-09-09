@@ -158,10 +158,17 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
     }
       const userRef=doc(db,"user",userDetails?.id)
     try {
+      let completedDoc={}
       const docRef = doc(db, "createTaskCollection", draggedTask.id);
       const statusLowerCaseName = pendingStatusUpdate
         .toLowerCase()
         .replace(/\s+/g, "");
+
+    if(pendingStatusUpdate.toLowerCase() == 'completed'){
+      completedDoc={
+        taskCompletedDate:Timestamp.now()
+      }
+    }
 
       await updateDoc(docRef, {
         taskStatusCategory: pendingStatusUpdate,
@@ -170,8 +177,9 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
         lastComment: note,
         isDelayed: IsDelayed,
         ...scoredoc,
+        ...completedDoc
       });
-
+     
       const updatedDocSnap = await getDoc(docRef);
 
       if (updatedDocSnap.exists()) {

@@ -160,13 +160,43 @@ const Page = () => {
     const summary = {};
     const patronRef = doc(db, "addPatronDetails", selectedPatron.id);
 
-    const tasks = contexttasks.filter(
-      (task) =>
-        task.patronRef?.id === selectedPatron.id &&
-        (task?.taskStatusCategory === "To be Started" ||
-          task?.taskStatusCategory === "In Process") &&
-        task?.isTaskDisabled === false
+    // const tasks = contexttasks.filter(
+    //   (task) =>
+    //     task.patronRef?.id === selectedPatron.id &&
+    //     (task?.taskStatusCategory === "To be Started" ||
+    //       task?.taskStatusCategory === "In Process") &&
+    //       task?.isTaskDisabled === false
+    // );
+
+    const now = new Date();
+    const todaysDate = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
     );
+
+    const patronTasks = contexttasks.filter(
+      (task) => task.patronRef?.id === selectedPatron.id && !task.isTaskDisabled
+    );
+
+    // Separate by status
+    const startedTasks = patronTasks.filter(
+      (task) => task.taskStatusCategory === "To be Started"
+    );
+
+    const inProcessTasks = patronTasks.filter(
+      (task) => task.taskStatusCategory === "In Process"
+    );
+
+    const completedTasks = patronTasks.filter(
+      (task) =>
+        task.taskStatusCategory === "Completed" &&
+        task.taskCompletedDate &&
+        new Date(task.taskCompletedDate) > todaysDate
+    );
+
+    // Combine all tasks for report
+    const tasks = [...startedTasks, ...inProcessTasks, ...completedTasks];
 
     if (fields.allTasksNum) {
       const totalTasksNumber = contexttasks.filter(
@@ -199,10 +229,11 @@ const Page = () => {
     }
 
     if (fields.lmInvoicesExpense) {
-     
       const q = query(
         collection(db, "LMInvoices"),
-        where("patronRef", "==", patronRef)
+        where("patronRef", "==", patronRef),
+        where("isDisabled", "==", false),
+        where("isInvoiceAdded", "==", true)
       );
       const snap = await getDocs(q);
 
@@ -213,9 +244,10 @@ const Page = () => {
         today.getDate()
       );
       const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-
+      let i = 0;
       snap.forEach((docSnap) => {
         const data = docSnap.data();
+
         const amount = parseFloat(data.invoiceAmount) || 0;
         const date = data.createdAt?.toDate?.() || null;
 
@@ -235,7 +267,7 @@ const Page = () => {
       const q = query(
         collection(db, "crmExpenseApproval"),
         where("patronRef", "==", patronRef),
-        where("approvalStatus","==","financeApproved'")
+        where("approvalStatus", "==", "financeApproved")
       );
       const snap = await getDocs(q);
 
@@ -249,6 +281,7 @@ const Page = () => {
 
       snap.forEach((docSnap) => {
         const data = docSnap.data();
+        console.log(data);
         const amount = parseFloat(data.totalAmount) || 0;
         const date = data.createdAt?.toDate?.() || null;
 

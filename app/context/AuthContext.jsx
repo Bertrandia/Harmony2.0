@@ -8,7 +8,7 @@ import React, {
   useMemo,
 } from "react";
 import { onAuthStateChanged, getAuth, signOut } from "firebase/auth";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, doc, onSnapshot } from "firebase/firestore";
 import { app } from "../../firebasedata/config";
 
 const AuthContext = createContext();
@@ -26,7 +26,9 @@ export const AuthProvider = ({ children }) => {
   const [userDetailsError, setUserDetailsError] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubscribeUserDoc = null;
+          console.log("Auth state:");
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setAuthLoading(false);
 
@@ -34,30 +36,38 @@ export const AuthProvider = ({ children }) => {
         setUserDetailsLoading(true);
         setUserDetailsError(null);
 
-        try {
-          const docRef = doc(db, "user", user.uid);
-          const docSnap = await getDoc(docRef);
+        const userDocRef = doc(db, "user", user.uid);
 
-          if (docSnap.exists()) {
-            setUserDetails({ id: docSnap.id, ...docSnap.data() });
-          } else {
-            console.warn(`No user details found for UID: ${user.uid}`);
+        // 👇 set up real-time Firestore listener
+        unsubscribeUserDoc = onSnapshot(
+          userDocRef,
+          (docSnap) => {
+            if (docSnap.exists()) {
+              setUserDetails({ id: docSnap.id, ...docSnap.data() });
+            } else {
+              console.warn(`No user details found for UID: ${user.uid}`);
+              setUserDetails(null);
+            }
+            setUserDetailsLoading(false);
+          },
+          (error) => {
+            console.error("Error streaming user details:", error);
             setUserDetails(null);
+            setUserDetailsError("Failed to load user details.");
+            setUserDetailsLoading(false);
           }
-        } catch (error) {
-          console.error("Error fetching user details:", error);
-          setUserDetails(null);
-          setUserDetailsError("Failed to load user details.");
-        } finally {
-          setUserDetailsLoading(false);
-        }
+        );
       } else {
         setUserDetails(null);
         setUserDetailsLoading(false);
+        if (unsubscribeUserDoc) unsubscribeUserDoc();
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeUserDoc) unsubscribeUserDoc();
+    };
   }, []);
 
   const logout = async () => {
@@ -73,13 +83,7 @@ export const AuthProvider = ({ children }) => {
       userDetailsError,
       logout,
     }),
-    [
-      currentUser,
-      authLoading,
-      userDetails,
-      userDetailsLoading,
-      userDetailsError,
-    ]
+    [currentUser, authLoading, userDetails, userDetailsLoading, userDetailsError]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
