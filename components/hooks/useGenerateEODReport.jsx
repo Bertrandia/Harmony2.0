@@ -46,7 +46,14 @@ export function useGenerateEODReport() {
       doc.text("End of Day Update", marginX + 4, 25);
 
       if (logoBase64) {
-        doc.addImage(logoBase64, "PNG", marginX + contentWidth - 25, 12, 20, 20);
+        doc.addImage(
+          logoBase64,
+          "PNG",
+          marginX + contentWidth - 25,
+          12,
+          20,
+          20
+        );
       }
     };
 
@@ -77,7 +84,7 @@ export function useGenerateEODReport() {
     if (summary.allTasksNum !== undefined)
       infoLines.push(`TOTAL TASKS: ${summary.allTasksNum}`);
     if (options.includeAdvance && summary.budgertLeft !== undefined)
-      infoLines.push(`LEFT ADVANCE AMOUNT: ${summary.budgertLeft}`);
+      infoLines.push(`LEFT ADVANCE AMOUNT: ${summary.budgertLeft.toFixed(2)}`);
     if (summary.todaysExpense !== undefined)
       infoLines.push(`EXPENSES TODAY: ${summary.todaysExpense}`);
     if (summary.mtdExpense !== undefined)
@@ -91,7 +98,7 @@ export function useGenerateEODReport() {
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text("EXPENSE INFORMATION:", marginX + 4, expenseBoxTop + 10);
-    
+
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
     infoLines.forEach((line, i) => {
@@ -118,10 +125,14 @@ export function useGenerateEODReport() {
 
       const taskTable = tasks.map((t, i) => [
         i + 1,
-        t.taskSubject || "—",
-        t.taskStatusCategory || "—",
-        t.taskStatusCategory || "—",
-        formatDate(t.taskDueDate),
+        t?.taskType === "OTS" || t?.taskType === "Associate"
+          ? `Request raised for - ${t?.taskCategory || "Unknown"}`
+          : t?.taskSubject && t.taskSubject.trim() !== ""
+          ? t.taskSubject
+          : "Unnamed Task",
+        t?.lastComment || "—",
+        t?.taskStatusCategory || "—",
+        formatDate(t?.taskDueDate),
       ]);
 
       autoTable(doc, {

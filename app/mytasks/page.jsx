@@ -1,6 +1,7 @@
 "use client";
 import React, { useContext, useMemo, useState } from "react";
 import { TaskContext } from "../context/TaskContext";
+import { LMPatronContext } from "../context/LmPatronsContext";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import MytasksTaskCard from "../../components/utils/MytasksTaskCard";
@@ -11,18 +12,25 @@ import { useParams, useSearchParams } from "next/navigation";
 
 function MyTasksPage() {
   const { contexttasks, tasksLoading } = useContext(TaskContext);
+  const { lmpatrons } = useContext(LMPatronContext);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [filterPriority, setFilterPriority] = useState("all");
+
   const [showCuratorOnly, setShowCuratorOnly] = useState(false); // 👈 NEW toggle state
+  const [selectedPatron, setSelectedPatron] = useState(null);
 
   const searchParams = useSearchParams();
   const searchparamspatronId = searchParams.get("id");
+  const patronFromUrl = lmpatrons.find((p) => p.id === searchparamspatronId);
 
   const filteredTasks = useMemo(() => {
     return contexttasks.filter((task) => {
-      // ✅ if patronId exists → only show that patron’s tasks
+      // ✅ if patronId from URL exists → only show that patron’s tasks
       if (searchparamspatronId && task?.patronRef?.id !== searchparamspatronId)
+        return false;
+
+      // ✅ if patron selected from dropdown → only show their tasks
+      if (selectedPatron && task?.patronRef?.id !== selectedPatron.id)
         return false;
 
       const matchesSearch =
@@ -40,22 +48,17 @@ function MyTasksPage() {
           : (task?.taskStatusCategory?.toLowerCase() ?? "") ===
             filterStatus.toLowerCase());
 
-      const matchesPriority =
-        filterPriority === "all" ||
-        (task?.priority?.toLowerCase() ?? "") === filterPriority.toLowerCase();
-
       const matchesCurator = !showCuratorOnly || task?.isCuratorTask === true;
 
-      return (
-        matchesSearch && matchesStatus && matchesPriority && matchesCurator
-      );
+      return matchesSearch && matchesStatus && matchesCurator;
     });
   }, [
     contexttasks,
     searchparamspatronId,
+    selectedPatron,
     searchTerm,
     filterStatus,
-    filterPriority,
+
     showCuratorOnly,
   ]);
 
@@ -66,8 +69,14 @@ function MyTasksPage() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">
-                My Tasks
+              <h1 className="text-3xl font-bold text-foreground">
+                {patronFromUrl ? (
+                  <span className="text-3xl font-bold tracking-tight text-foreground">
+                    {patronFromUrl.newPatronName || patronFromUrl.patronName}
+                  </span>
+                ) : (
+                  "My Tasks"
+                )}
               </h1>
               <p className="mt-2 text-muted-foreground">
                 Manage your personal and service requests
@@ -116,16 +125,25 @@ function MyTasksPage() {
                 <option value="Delayed">Delayed</option>
               </select>
 
-              <select
-                value={filterPriority}
-                onChange={(e) => setFilterPriority(e.target.value)}
-                className="px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="all">All Priority</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
+              {!patronFromUrl && (
+                <select
+                  value={selectedPatron?.id || ""}
+                  onChange={(e) => {
+                    const patron = lmpatrons.find(
+                      (p) => p.id === e.target.value
+                    );
+                    setSelectedPatron(patron || null);
+                  }}
+                  className="px-3 py-2 border border-input bg-background rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">All Patrons</option>
+                  {lmpatrons.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.newPatronName || p.patronName || "Unnamed Patron"}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
         </div>

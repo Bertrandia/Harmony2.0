@@ -13,9 +13,20 @@ const PatronCard = ({
 }) => {
   const [imgError, setImgError] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // Toggle menu
+  
 
   if (!patrondata) return null;
-
+  const patronAddress = [
+  patrondata?.addressLine1,
+  patrondata?.addressLine2,
+  patrondata?.city,
+  patrondata?.state,
+  patrondata?.pinCode,
+  patrondata?.country,
+]
+  .filter(Boolean) // Remove null/undefined/empty
+  .join(", ");
+ 
   const {
     patronName,
     assignedLM,
@@ -86,6 +97,9 @@ const PatronCard = ({
             </h3>
             <p className="text-sm text-muted-foreground">
               {email || "No email"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {patronAddress || "No Address"}
             </p>
           </div>
         </div>

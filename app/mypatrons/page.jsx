@@ -160,26 +160,20 @@ const Page = () => {
     const summary = {};
     const patronRef = doc(db, "addPatronDetails", selectedPatron.id);
 
-    // const tasks = contexttasks.filter(
-    //   (task) =>
-    //     task.patronRef?.id === selectedPatron.id &&
-    //     (task?.taskStatusCategory === "To be Started" ||
-    //       task?.taskStatusCategory === "In Process") &&
-    //       task?.isTaskDisabled === false
-    // );
+   
 
     const now = new Date();
     const todaysDate = new Date(
       now.getFullYear(),
       now.getMonth(),
       now.getDate()
-    );
+    ); // Today at 00:00:00
 
+    // Filter tasks for selected patron
     const patronTasks = contexttasks.filter(
       (task) => task.patronRef?.id === selectedPatron.id && !task.isTaskDisabled
     );
 
-    // Separate by status
     const startedTasks = patronTasks.filter(
       (task) => task.taskStatusCategory === "To be Started"
     );
@@ -188,15 +182,27 @@ const Page = () => {
       (task) => task.taskStatusCategory === "In Process"
     );
 
-    const completedTasks = patronTasks.filter(
-      (task) =>
-        task.taskStatusCategory === "Completed" &&
-        task.taskCompletedDate &&
-        new Date(task.taskCompletedDate) > todaysDate
-    );
+    // Completed Today
+    const completedTasks = patronTasks.filter((task) => {
+      if (
+        task?.taskStatusCategory !== "Completed" ||
+        !task?.taskCompletedDate
+      ) {
+        return false;
+      }
+
+      const completedDate = task.taskCompletedDate.toDate(); // ✅ FIXED
+      return completedDate >= todaysDate;
+    });
 
     // Combine all tasks for report
-    const tasks = [...startedTasks, ...inProcessTasks, ...completedTasks];
+    const tasks = [...startedTasks, ...inProcessTasks, ...completedTasks].sort(
+      (a, b) => {
+        const aDate = a.createdAt?.toDate?.() || new Date(a.createdAt);
+        const bDate = b.createdAt?.toDate?.() || new Date(b.createdAt);
+        return aDate - bDate; // Ascending order
+      }
+    );
 
     if (fields.allTasksNum) {
       const totalTasksNumber = contexttasks.filter(
@@ -281,7 +287,7 @@ const Page = () => {
 
       snap.forEach((docSnap) => {
         const data = docSnap.data();
-        console.log(data);
+
         const amount = parseFloat(data.totalAmount) || 0;
         const date = data.createdAt?.toDate?.() || null;
 
