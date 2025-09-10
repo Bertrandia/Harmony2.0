@@ -242,7 +242,7 @@ export default function CashMemoInvoiceForm({
             <button
               type="button"
               onClick={onDone}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-4 py-2 bg-black text-white rounded hover:bg-black"
             >
               Done
             </button>
@@ -253,7 +253,7 @@ export default function CashMemoInvoiceForm({
               type="submit"
               onClick={handleSubmit}
               disabled={submitting}
-              className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+              className="px-4 py-2 bg-black text-white rounded disabled:opacity-50"
             >
               {submitting ? "Submitting..." : "Submit"}
             </button>

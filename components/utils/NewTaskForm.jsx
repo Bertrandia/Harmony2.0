@@ -11,12 +11,13 @@ export default function NewTaskForm({
   submissionStatus,
   onDelete,
   isFirstTaskSubmitted,
+  isPatronTask,
 }) {
   const [taskSubject, setTaskSubject] = useState(
     initialData.task_subject || ""
   );
   const [description, setDescription] = useState(initialData.description || "");
-  const [taskSource, setTaskSource] = useState(null);
+  const [taskSource, setTaskSource] = useState("WhatsApp");
   const [priority, setPriority] = useState("Medium");
   const [category, setCategory] = useState(null);
   const [subCategory, setSubCategory] = useState(null);
@@ -100,7 +101,7 @@ export default function NewTaskForm({
       !categoryTag ||
       !dueDate ||
       !priority ||
-      !taskSource
+      (!isPatronTask && !taskSource) // ✅ only required if isTaskForm is false/undefined
     ) {
       setError("Please fill in all required fields.");
       return;
@@ -123,9 +124,9 @@ export default function NewTaskForm({
     }
 
     setError("");
+    
 
     const payload = {
-      taskSource,
       taskSubject,
       taskDescription: description,
       aiCreatedCategory: initialData?.category || "",
@@ -138,6 +139,10 @@ export default function NewTaskForm({
       priority,
       taskStatusCategory: "To be Started",
     };
+
+    if (taskSource) {
+      payload.taskSource = taskSource;
+    }
 
     // Add curator fields if selected
     if (
@@ -158,7 +163,6 @@ export default function NewTaskForm({
       payload.isCuratorTask = false;
       payload.curatorTaskStatus = "";
     }
-
     
     onSubmit(payload, index);
   };
@@ -169,21 +173,25 @@ export default function NewTaskForm({
         {index === 0 ? "Original Task (Update)" : `New Task ${index}`}
       </h3>
 
-      <label className="text-sm font-medium">
-        Task Source <span className="text-red-500">*</span>
-      </label>
-      <select
-        className="w-full px-3 py-2 border rounded-lg bg-white"
-        value={taskSource} // Make sure this state exists
-        onChange={(e) => setTaskSource(e.target.value)}
-      >
-        <option value="">Select Task Source</option>
-        <option value="On Call">On Call</option>
-        <option value="WhatsApp">WhatsApp</option>
-        <option value="Physical">Physical</option>
-        <option value="Text">Text</option>
-        <option value="Others">Others</option>
-      </select>
+      {!isPatronTask && (
+        <>
+          <label className="text-sm font-medium">
+            Task Source <span className="text-red-500">*</span>
+          </label>
+          <select
+            className="w-full px-3 py-2 border rounded-lg bg-white"
+            value={taskSource || ""}
+            onChange={(e) => setTaskSource(e.target.value)}
+          >
+            <option value="">Select Task Source</option>
+            <option value="On Call">On Call</option>
+            <option value="WhatsApp">WhatsApp</option>
+            <option value="Physical">Physical</option>
+            <option value="Text">Text</option>
+            <option value="Others">Others</option>
+          </select>
+        </>
+      )}
       <label className="text-sm font-medium">
         Task Subject <span className="text-red-500">*</span>
       </label>

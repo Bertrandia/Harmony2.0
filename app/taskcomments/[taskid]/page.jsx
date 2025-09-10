@@ -521,6 +521,7 @@ const Page = () => {
     "In Process": "You can change status to Completed, Cancelled, or On Hold.",
     Completed: "Status cannot be changed further.",
   };
+
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
       {aiScoringLoading && <AiScoreLoader />}
@@ -850,6 +851,7 @@ const Page = () => {
         draggedTask={taskdata}
         onClose={HandelGenerateTaskModelCancel}
         onFormSubmit={HandelGenerateTaskModelSubmit}
+        isPatronTask={true}
       />
     </div>
   );

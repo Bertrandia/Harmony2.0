@@ -27,7 +27,6 @@ import {
 import { ArrowRight } from "lucide-react";
 import InfoNote from "../../components/utils/InfoNote";
 
-
 function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
   const { lmpatrons } = useContext(LMPatronContext);
 
@@ -49,7 +48,6 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [pendingStatusUpdate, setPendingStatusUpdate] = useState(null);
   const [aiScoringLoading, setAiScoringLoading] = useState(false);
-
   const [extraOrdinaryScoreOrValueScore, setExtraOrdinaryScoreOrValueScore] =
     useState(null);
 
@@ -156,19 +154,19 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
         valueScore: extraOrdinaryScoreOrValueScore?.valueScore || 15,
       };
     }
-      const userRef=doc(db,"user",userDetails?.id)
+    const userRef = doc(db, "user", userDetails?.id);
     try {
-      let completedDoc={}
+      let completedDoc = {};
       const docRef = doc(db, "createTaskCollection", draggedTask.id);
       const statusLowerCaseName = pendingStatusUpdate
         .toLowerCase()
         .replace(/\s+/g, "");
 
-    if(pendingStatusUpdate.toLowerCase() == 'completed'){
-      completedDoc={
-        taskCompletedDate:Timestamp.now()
+      if (pendingStatusUpdate.toLowerCase() == "completed") {
+        completedDoc = {
+          taskCompletedDate: Timestamp.now(),
+        };
       }
-    }
 
       await updateDoc(docRef, {
         taskStatusCategory: pendingStatusUpdate,
@@ -177,9 +175,9 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
         lastComment: note,
         isDelayed: IsDelayed,
         ...scoredoc,
-        ...completedDoc
+        ...completedDoc,
       });
-     
+
       const updatedDocSnap = await getDoc(docRef);
 
       if (updatedDocSnap.exists()) {
@@ -195,9 +193,8 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
           isUpdate: true,
           taskStatusCategory: pendingStatusUpdate,
           taskRef: docRef,
-          timeStamp:Timestamp.now(),
-          comment_owner_ref:userRef || ""
-
+          timeStamp: Timestamp.now(),
+          comment_owner_ref: userRef || "",
         };
 
         await addDoc(commentDocRef, commentDoc);
@@ -300,6 +297,7 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
         setCurrentDraggedTask(draggedTask);
         setAiTaskQueue(generated);
         setShowModal(true);
+
         return;
       } else {
         setCurrentDraggedTask(null);
@@ -402,13 +400,15 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
     }
   };
   const content = {
-  "Online/Offline Toggle": "Set Online when you’re available to chat with patrons.",
-  "Chat Availability": "Make sure you’re logged in before starting a chat.",
-  "Patron Search": "Select a patron from the dropdown to view that patron’s tasks.",
-  "Task Board": "Drag and drop a task to update its status.",
-  "Status Order": "Follow this sequence: Created → To Be Started → In Progress → Completed (don’t skip steps)."
-};
-
+    "Online/Offline Toggle":
+      "Set Online when you’re available to chat with patrons.",
+    "Chat Availability": "Make sure you’re logged in before starting a chat.",
+    "Patron Search":
+      "Select a patron from the dropdown to view that patron’s tasks.",
+    "Task Board": "Drag and drop a task to update its status.",
+    "Status Order":
+      "Follow this sequence: Created → To Be Started → In Progress → Completed (don’t skip steps).",
+  };
 
   return (
     <div className="p-6">
@@ -504,6 +504,7 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
         draggedTask={currentDraggedTask}
         onClose={HandelGenerateTaskModelCancel}
         onFormSubmit={HandelGenerateTaskModelSubmit}
+        isPatronTask={true}
       />
       {showWarning && (
         <div className="fixed top-5 right-5 z-50 w-72 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded-lg shadow-md p-4">

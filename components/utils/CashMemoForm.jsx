@@ -181,7 +181,7 @@ const CashMemoForm = ({
         cashMemoDataForm,
         userDetails?.id
       );
-       
+
       const cashMemoTemplate = {
         invoice: cashMemoPdfUrl || "",
         cashMemoPdf: cashMemoPdfUrl || "",
@@ -204,8 +204,6 @@ const CashMemoForm = ({
 
       const crmCashMemoCol = collection(db, "crmCashMemo");
       const docRef = await addDoc(crmCashMemoCol, cashMemoTemplate);
-
-    
 
       setCashMemoInfo({
         vendorName: cashMemoDataForm.vendorName,
@@ -366,227 +364,253 @@ const CashMemoForm = ({
   return (
     <>
       {/* Cash Memo Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="mt-6 bg-white shadow-md rounded-lg p-6 space-y-6"
-      >
-        {/* Vendor & Sold To */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block font-medium mb-2">Vendor Name</label>
-            <input
-              type="text"
-              value={vendorName}
-              onChange={(e) => setVendorName(e.target.value)}
-              className="w-full px-3 py-2 border rounded focus:ring focus:ring-blue-200"
-            />
-          </div>
 
-          <div>
-            <label className="block font-medium mb-2">Sold To</label>
-            <input
-              type="text"
-              value={soldTo}
-              onChange={(e) => setSoldTo(e.target.value)}
-              className="w-full px-3 py-2 border rounded focus:ring focus:ring-blue-200"
-            />
-          </div>
-        </div>
-
-        {/* Invoice Date & File Upload */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block font-medium mb-2">Invoice Date</label>
-            <input
-              type="date"
-              value={invoiceDate}
-              onChange={(e) => setInvoiceDate(e.target.value)}
-              className="w-full px-3 py-2 border rounded focus:ring focus:ring-blue-200"
-            />
-          </div>
-
-          <div>
-            <label className="block font-medium mb-2">Upload File/Image</label>
-            <input
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={(e) => setFile(e.target.files[0])}
-              className="w-full border rounded px-2 py-1"
-            />
-          </div>
-        </div>
-
-        {/* Items Section */}
-        <div>
-          <h2 className="text-lg font-semibold mb-4 border-b pb-2">Items</h2>
-          {items.map((item, index) => (
-            <div
-              key={index}
-              className="border p-4 rounded-lg mb-4 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 relative"
-            >
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Item Name
-                </label>
-                <input
-                  type="text"
-                  value={item.itemName}
-                  onChange={(e) =>
-                    handleItemChange(index, "itemName", e.target.value)
-                  }
-                  className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Item Units
-                </label>
-                <select
-                  value={item.itemUnits}
-                  onChange={(e) =>
-                    handleItemChange(index, "itemUnits", e.target.value)
-                  }
-                  className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
-                >
-                  <option value="">Select Unit</option>
-                  {[
-                    "m",
-                    "Ltr.",
-                    "Box",
-                    "Can",
-                    "Btl.",
-                    "Nos",
-                    "Pcs.",
-                    "PKT.",
-                    "Dozen",
-                    "Sft",
-                    "L-Sip",
-                    "Trips",
-                    "Set",
-                    "Foot",
-                    "Bundle",
-                    "SQM",
-                    "Coil",
-                    "Days",
-                    "RFT",
-                    "Pair",
-                    "CRT",
-                    "Tin",
-                    "Jar",
-                    "Roll",
-                    "Hrs",
-                  ].map((unit) => (
-                    <option key={unit} value={unit}>
-                      {unit}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Quantity
-                </label>
-                <input
-                  type="number"
-                  value={item.itemQuantity}
-                  onChange={(e) =>
-                    handleItemChange(index, "itemQuantity", e.target.value)
-                  }
-                  className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Total</label>
-                <input
-                  type="number"
-                  value={item.itemTotal}
-                  onChange={(e) =>
-                    handleItemChange(index, "itemTotal", e.target.value)
-                  }
-                  className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Rate (auto)
-                </label>
-                <input
-                  type="text"
-                  value={item.itemRate}
-                  readOnly
-                  className="w-full border px-3 py-2 rounded bg-gray-100"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  value={item.itemDescription}
-                  onChange={(e) =>
-                    handleItemChange(index, "itemDescription", e.target.value)
-                  }
-                  className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const newItems = items.filter((_, i) => i !== index);
-                  setItems(newItems);
-                }}
-                className="absolute top-2 right-2 text-red-600 hover:text-red-800 text-sm"
-              >
-                ✕ Delete
-              </button>
+      {!success && (
+        <form
+          onSubmit={handleSubmit}
+          className="mt-6 bg-white shadow-md rounded-lg p-6 space-y-6"
+        >
+          {/* Vendor & Sold To */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block font-medium mb-2">Vendor Name</label>
+              <input
+                type="text"
+                value={vendorName}
+                onChange={(e) => setVendorName(e.target.value)}
+                className="w-full px-3 py-2 border rounded focus:ring focus:ring-blue-200"
+              />
             </div>
-          ))}
 
-          <button
-            type="button"
-            onClick={handleAddItem}
-            disabled={success}
-            className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            <div>
+              <label className="block font-medium mb-2">Sold To</label>
+              <input
+                type="text"
+                value={soldTo}
+                onChange={(e) => setSoldTo(e.target.value)}
+                className="w-full px-3 py-2 border rounded focus:ring focus:ring-blue-200"
+              />
+            </div>
+          </div>
+
+          {/* Invoice Date & File Upload */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block font-medium mb-2">Invoice Date</label>
+              <input
+                type="date"
+                value={invoiceDate}
+                onChange={(e) => setInvoiceDate(e.target.value)}
+                className="w-full px-3 py-2 border rounded focus:ring focus:ring-blue-200"
+              />
+            </div>
+
+            <div>
+              <label className="block font-medium mb-2">
+                Upload File/Image
+              </label>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => setFile(e.target.files[0])}
+                className="w-full border rounded px-2 py-1"
+              />
+            </div>
+          </div>
+
+          {/* Items Section */}
+          <div>
+            <h2 className="text-lg font-semibold mb-4 border-b pb-2">Items</h2>
+            {items.map((item, index) => (
+              <div
+                key={index}
+                className="border p-4 rounded-lg mb-4 grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 relative"
+              >
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Item Name
+                  </label>
+                  <input
+                    type="text"
+                    value={item.itemName}
+                    onChange={(e) =>
+                      handleItemChange(index, "itemName", e.target.value)
+                    }
+                    className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Item Units
+                  </label>
+                  <select
+                    value={item.itemUnits}
+                    onChange={(e) =>
+                      handleItemChange(index, "itemUnits", e.target.value)
+                    }
+                    className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
+                  >
+                    <option value="">Select Unit</option>
+                    {[
+                      "m",
+                      "Ltr.",
+                      "Box",
+                      "Can",
+                      "Btl.",
+                      "Nos",
+                      "Pcs.",
+                      "PKT.",
+                      "Dozen",
+                      "Sft",
+                      "L-Sip",
+                      "Trips",
+                      "Set",
+                      "Foot",
+                      "Bundle",
+                      "SQM",
+                      "Coil",
+                      "Days",
+                      "RFT",
+                      "Pair",
+                      "CRT",
+                      "Tin",
+                      "Jar",
+                      "Roll",
+                      "Hrs",
+                    ].map((unit) => (
+                      <option key={unit} value={unit}>
+                        {unit}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Quantity
+                  </label>
+                  <input
+                    type="number"
+                    value={item.itemQuantity}
+                    onChange={(e) =>
+                      handleItemChange(index, "itemQuantity", e.target.value)
+                    }
+                    className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Total
+                  </label>
+                  <input
+                    type="number"
+                    value={item.itemTotal}
+                    onChange={(e) =>
+                      handleItemChange(index, "itemTotal", e.target.value)
+                    }
+                    className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Rate (auto)
+                  </label>
+                  <input
+                    type="text"
+                    value={item.itemRate}
+                    readOnly
+                    className="w-full border px-3 py-2 rounded bg-gray-100"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-2">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    value={item.itemDescription}
+                    onChange={(e) =>
+                      handleItemChange(index, "itemDescription", e.target.value)
+                    }
+                    className="w-full border px-3 py-2 rounded focus:ring focus:ring-blue-200"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newItems = items.filter((_, i) => i !== index);
+                    setItems(newItems);
+                  }}
+                  className="absolute top-2 right-2 text-red-600 hover:text-red-800 text-sm"
+                >
+                  ✕ Delete
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={handleAddItem}
+              disabled={success}
+              className="mt-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              + Add Item
+            </button>
+          </div>
+
+          {/* Error Display */}
+          {Object.keys(formErrors).length > 0 && (
+            <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+              <ul className="list-disc list-inside text-sm">
+                {Object.values(formErrors).map((msg, idx) => (
+                  <li key={idx}>{msg}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Success or Submit */}
+          {success ? (
+            <div className="mt-4 px-4 py-3 rounded bg-green-100 text-green-700 font-semibold text-center">
+              ✅ Cash Memo Generated Successfully!
+            </div>
+          ) : (
+            <button
+              type="submit"
+              disabled={loading}
+              className={`mt-4 px-6 py-2 rounded-lg text-white font-medium ${
+                loading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
+              }`}
+            >
+              {loading ? "Generating..." : "Generate Cash Memo"}
+            </button>
+          )}
+        </form>
+      )}
+
+      {success && cashMemoInfo?.cashMemoPdfUrl && (
+        <div className="mt-4 text-center">
+          <a
+            href={cashMemoInfo.cashMemoPdfUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
           >
-            + Add Item
-          </button>
+            🔗 View Cash Memo PDF
+          </a>
         </div>
+      )}
 
-        {/* Error Display */}
-        {Object.keys(formErrors).length > 0 && (
-          <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-            <ul className="list-disc list-inside text-sm">
-              {Object.values(formErrors).map((msg, idx) => (
-                <li key={idx}>{msg}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Success or Submit */}
-        {success ? (
-          <div className="mt-4 px-4 py-3 rounded bg-green-100 text-green-700 font-semibold text-center">
-            ✅ Cash Memo Generated Successfully!
-          </div>
-        ) : (
-          <button
-            type="submit"
-            disabled={loading}
-            className={`mt-4 px-6 py-2 rounded-lg text-white font-medium ${
-              loading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
-            }`}
-          >
-            {loading ? "Generating..." : "Generate Cash Memo"}
-          </button>
-        )}
-      </form>
+      {success && (
+        <div className="mt-4 px-4 py-3 rounded bg-green-100 text-green-700 font-semibold text-center">
+          ✅ Cash Memo Generated Successfully!
+        </div>
+      )}
 
       {/* Invoice Section */}
       {success && (

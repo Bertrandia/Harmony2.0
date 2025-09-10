@@ -7,6 +7,7 @@ export default function GeneratedTaskFormModal({
   aiTasks,
   onClose,
   onFormSubmit,
+  isPatronTask
 }) {
   const [submissionStatus, setSubmissionStatus] = useState({});
   const [aiTaskQueue, setAiTaskQueue] = useState([]);
@@ -53,6 +54,7 @@ export default function GeneratedTaskFormModal({
                 initialData={task}
                 isFirstTaskSubmitted={isFirstTaskSubmitted}
                 submissionStatus={submissionStatus[index]}
+                isPatronTask={isPatronTask}
                 onDelete={(i) => {
                   const updatedTasks = [...aiTaskQueue];
                   updatedTasks.splice(i, 1);

@@ -160,8 +160,6 @@ const Page = () => {
     const summary = {};
     const patronRef = doc(db, "addPatronDetails", selectedPatron.id);
 
-   
-
     const now = new Date();
     const todaysDate = new Date(
       now.getFullYear(),
@@ -387,7 +385,7 @@ const Page = () => {
   ) => {
     try {
       const patrondata = taskPatron;
-      console.log(patrondata);
+
       // Guard: Required fields check
       if (
         !patrondata?.id ||
