@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Users,
   CreditCard,
+  CalendarDays
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -37,6 +38,11 @@ const navigationItems = [
     name: "LM-Expenses",
     href: "/lmexpenses",
     icon: CreditCard,
+  },
+  {
+    name: "Tasks-Due-Today",
+    href: "/mytasks?filtername=taskduedateistoday",
+    icon: CalendarDays,
   },
 ];
 

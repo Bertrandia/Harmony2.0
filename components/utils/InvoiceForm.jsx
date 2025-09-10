@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Timestamp } from "firebase/firestore";
 import ApprovalDropdown from "../utils/ApprovalDropdown";
 import CustomDropdown from "../utils/CustomDropdown";
+import { useRouter } from "next/navigation";
 
 const InvoiceForm = ({
   hideInvoiceFields,
@@ -13,19 +14,35 @@ const InvoiceForm = ({
   onDone,
   invoiceLoading,
 }) => {
-  const [paymentDate, setPaymentDate] = useState("");
-  const [paymentMode, setPaymentMode] = useState("");
-  const [billingModel, setBillingModel] = useState("");
+  const router = useRouter();
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+  const formatDateDDMMYYYY = `${yyyy}-${mm}-${dd}`;
+
+  const [paymentDate, setPaymentDate] = useState(formatDateDDMMYYYY);
+  const [paymentMode, setPaymentMode] = useState("OmniCardUPI");
+  const [billingModel, setBillingModel] = useState(
+    "Customer Billable Expenses"
+  );
   const [approvalId, setApprovalId] = useState("");
   const [approvalDocId, setApprovalDocId] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [invoiceDate, setInvoiceDate] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState(formatDateDDMMYYYY);
   const [invoiceAmount, setInvoiceAmount] = useState("");
   const [invoiceFile, setInvoiceFile] = useState(null);
   const [invoiceDescription, setInvoiceDescription] = useState("");
   const [transactionId, setTransactionId] = useState("");
   const [formErrors, setFormErrors] = useState({});
   const fileNameRef = useRef(null);
+
+  const modesNotRequiringTransactionId = [
+    "OTS",
+    "Advance from Company",
+    "Business Credit Card",
+    "Complementary Service",
+  ];
 
   const approvalDocData = approvalIds.find(
     (doc) => doc.ApprovalID === approvalId
@@ -34,6 +51,12 @@ const InvoiceForm = ({
   useEffect(() => {
     resetForm();
   }, [hideInvoiceFields]);
+
+   useEffect(() => {
+    if (success) {
+      router.push("/mytasks");
+    }
+  }, [success, router]);
 
   const handleSubmit = () => {
     const errors = {};
@@ -45,9 +68,6 @@ const InvoiceForm = ({
       errors.paymentDate = `Expense amount exceeds the available budget. Budget left:${budgetLeft}`;
     if (!paymentDate) errors.paymentDate = "Payment Date is required";
     if (!paymentMode) errors.paymentMode = "Payment Mode is required";
-     if (!transactionId) errors.paymentMode = "Transactionid is required";
-
-    
 
     if (!billingModel) errors.billingModel = "Billing Model is required";
     if (!approvalId) errors.approvalId = "Approval ID is required";
@@ -56,6 +76,13 @@ const InvoiceForm = ({
       if (!invoiceNumber) errors.invoiceNumber = "Invoice Number is required";
       if (!invoiceDate) errors.invoiceDate = "Invoice Date is required";
       if (!invoiceFile) errors.invoiceFile = "Invoice File is required";
+    }
+
+    if (
+      !modesNotRequiringTransactionId.includes(paymentMode) &&
+      !transactionId
+    ) {
+      errors.transactionId = "Transaction ID is required for this payment mode";
     }
 
     const numberRegex = /^\d+(\.\d{1,2})?$/; // allows numbers like 2 or 2.33 (up to 2 decimal places)
@@ -102,20 +129,18 @@ const InvoiceForm = ({
         budgetSpend,
       };
 
-     
-
       onSubmit(formData);
     }
   };
 
   const resetForm = () => {
-    setPaymentDate("");
-    setPaymentMode("");
-    setBillingModel("");
+    setPaymentDate(formatDateDDMMYYYY);
+    setPaymentMode("OmniCardUPI");
+    setBillingModel("Customer Billable Expenses");
     setApprovalId("");
     setApprovalDocId("");
     setInvoiceNumber("");
-    setInvoiceDate("");
+    setInvoiceDate(formatDateDDMMYYYY);
     setInvoiceAmount("");
     setInvoiceFile(null);
     setInvoiceDescription("");
@@ -171,7 +196,14 @@ const InvoiceForm = ({
           <CustomDropdown
             label="Payment Mode"
             value={paymentMode}
-            onChange={setPaymentMode}
+            onChange={(mode) => {
+              setPaymentMode(mode);
+
+              // Reset transactionId if mode doesn't require it
+              if (modesNotRequiringTransactionId.includes(mode)) {
+                setTransactionId("");
+              }
+            }}
             options={[
               {
                 value: "Bank Transfer made already",
@@ -191,6 +223,25 @@ const InvoiceForm = ({
           />
         </div>
 
+        {/*  Transaction ID (conditional) */}
+
+        {!modesNotRequiringTransactionId.includes(paymentMode) && (
+          <div className="w-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Transaction ID
+            </label>
+            <input
+              type="text"
+              value={transactionId}
+              onChange={(e) => setTransactionId(e.target.value)}
+              placeholder="Enter transaction ID"
+              className="w-full px-5 py-3 bg-white border-2 border-gray-200 rounded-xl 
+                 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 
+                 text-gray-700 shadow-sm hover:border-blue-300"
+            />
+          </div>
+        )}
+
         {/* Billing Model */}
         <div className="w-full">
           <CustomDropdown
@@ -209,24 +260,6 @@ const InvoiceForm = ({
             ]}
           />
         </div>
-
-        {/* Omni Transaction ID (conditional) */}
-       
-          <div className="w-full">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Transaction ID
-            </label>
-            <input
-              type="text"
-              value={transactionId}
-              onChange={(e) => setTransactionId(e.target.value)}
-              placeholder="Enter transaction ID"
-              className="w-full px-5 py-3 bg-white border-2 border-gray-200 rounded-xl 
-                       focus:ring-4 focus:ring-blue-100 focus:border-blue-500 
-                       text-gray-700 shadow-sm hover:border-blue-300"
-            />
-          </div>
-       
 
         {/* Approval Dropdown full width */}
         <div className="lg:col-span-2 xl:col-span-3">
@@ -365,13 +398,13 @@ const InvoiceForm = ({
           <p className="text-gray-600 mb-6">
             Invoice has been submitted successfully
           </p>
-          <button
+          {/* <button
             type="button"
             onClick={onDone}
             className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-10 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-200 shadow-lg hover:shadow-xl"
           >
             Done
-          </button>
+          </button> */}
         </div>
       )}
     </div>

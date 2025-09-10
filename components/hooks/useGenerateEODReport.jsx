@@ -37,14 +37,22 @@ export function useGenerateEODReport() {
 
     // === HEADER DRAW FUNCTION (for all pages) ===
     const drawHeader = () => {
+      // Orange background
       doc.setFillColor(249, 165, 66); // #F9A542
-      doc.rect(marginX, 10, contentWidth, headerHeight, "F");
+      doc.rect(marginX, 10, contentWidth + 0.2, headerHeight, "F");
 
+      // 🔹 Add black border
+      doc.setDrawColor(0, 0, 0); // black
+      doc.setLineWidth(0.1); // optional, controls thickness
+      doc.rect(marginX, 10, contentWidth + 0.2, headerHeight, "S");
+
+      // Title text
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(255, 255, 255);
       doc.text("End of Day Update", marginX + 4, 25);
 
+      // Logo
       if (logoBase64) {
         doc.addImage(
           logoBase64,
@@ -90,7 +98,7 @@ export function useGenerateEODReport() {
     if (summary.mtdExpense !== undefined)
       infoLines.push(`EXPENSES MTD: ${summary.mtdExpense}`);
 
-    const expenseBoxTop = 10 + headerHeight; // Directly below header
+    const expenseBoxTop = 10 + headerHeight + 0; // Directly below header
     const expenseBoxHeight = 6 + infoLines.length * 5; // Smaller box
 
     doc.rect(marginX, expenseBoxTop, contentWidth, expenseBoxHeight);
@@ -105,7 +113,7 @@ export function useGenerateEODReport() {
       doc.text(line, marginX + 120, expenseBoxTop + 6 + i * 5); // Left aligned
     });
 
-    let nextY = expenseBoxTop + expenseBoxHeight + 4;
+    let nextY = expenseBoxTop + expenseBoxHeight + 0;
 
     // === TASKS TABLE ===
     if (options.includeTasks && tasks.length > 0) {
@@ -138,7 +146,7 @@ export function useGenerateEODReport() {
       autoTable(doc, {
         startY: nextY,
         margin: {
-          top: 10 + headerHeight + 5,
+          top: 10 + headerHeight + 0.2,
           left: marginX,
           right: marginX,
         },
@@ -185,7 +193,7 @@ export function useGenerateEODReport() {
       autoTable(doc, {
         startY: nextY,
         margin: {
-          top: 10 + headerHeight + 5,
+          top: 10 + headerHeight + 2,
           left: marginX,
           right: marginX,
         },

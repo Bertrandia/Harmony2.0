@@ -245,8 +245,8 @@ const addexpensesPage = () => {
         isRejected: false,
         lmRef,
         lmName: userDetails?.display_name || "",
-        paymentTransactionDate: formData.paymentDate,
-        transctionId: formData.transactionId,
+        paymentTransactionDate: formData?.paymentDate,
+        transctionId: formData?.transactionId || "",
         isExpenseAddedBySpecialLM: false,
         newPatronName: patron?.newPatronName || "",
         newPatronID: patron?.newPatronID || "",
@@ -285,7 +285,7 @@ const addexpensesPage = () => {
 
       await fetchTaskAndPatron();
     } catch (error) {
-      console.error("Error during invoice submission:", error);
+      console.error("Error during invoice submission:", error.message);
     } finally {
       setInvoiceLoading(false);
     }
@@ -521,7 +521,7 @@ const addexpensesPage = () => {
               I confirm that this expense does not have any official supporting
               bill/invoice, and it is not from listed vendors such as Amazon,
               Blinkit, etc. I acknowledge and accept this cash memo as valid for
-              record purposes ..
+              record purposes.
             </span>
           </label>
 

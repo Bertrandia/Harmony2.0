@@ -3,17 +3,26 @@
 import React, { useEffect, useState } from "react";
 import { Timestamp } from "firebase/firestore";
 import ApprovalDropdown from "./ApprovalDropdown";
+import { useRouter } from "next/navigation";
 export default function CashMemoInvoiceForm({
   approvalIds,
   submitting,
   cashMemoInvoicesuccess,
   onDone,
   onSubmit,
-  itemstotalAmount
+  itemstotalAmount,
 }) {
-  const [paymentDate, setPaymentDate] = useState("");
-  const [paymentMode, setPaymentMode] = useState("");
-  const [billingModel, setBillingModel] = useState("");
+  const router = useRouter(); 
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+  const formatDateDDMMYYYY = `${yyyy}-${mm}-${dd}`;
+  const [paymentDate, setPaymentDate] = useState(formatDateDDMMYYYY);
+  const [paymentMode, setPaymentMode] = useState("OmniCardUPI");
+  const [billingModel, setBillingModel] = useState(
+    "Customer Billable Expenses"
+  );
   const [approvalId, setApprovalId] = useState("");
   const [approvalDocId, setApprovalDocId] = useState("");
   const [invoiceDate, setInvoiceDate] = useState("");
@@ -22,38 +31,50 @@ export default function CashMemoInvoiceForm({
   const [transactionId, setTransactionId] = useState("");
   const [formErrors, setFormErrors] = useState({});
 
+  const modesNotRequiringTransactionId = [
+    "OTS",
+    "Advance from Company",
+    "Business Credit Card",
+    "Complementary Service",
+  ];
+
   const approvalDocData = approvalIds.find(
     (doc) => doc.ApprovalID === approvalId
   );
-  
+
   useEffect(() => {
     resetForm();
   }, []);
 
+  useEffect(() => {
+    // 🔹 Auto navigate after success
+    if (cashMemoInvoicesuccess) {
+      router.push("/mytasks"); // <-- navigate to mytasks page
+    }
+  }, [cashMemoInvoicesuccess, router]);
+
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
 
- 
-  if (submitting){
-    console("not allowed")
-    return
-  };
+    if (submitting) {
+      console("not allowed");
+      return;
+    }
     const errors = {};
     const budgetLeft = parseFloat(approvalDocData?.budgetLeft || 0);
     const budgetSpend = parseFloat(approvalDocData?.budgetSpent || 0);
 
-      
     if (itemstotalAmount > budgetLeft)
       errors.invoiceAmount = `Expense amount exceeds available budget. Budget left: ₹${budgetLeft}`;
     if (!paymentDate) errors.paymentDate = "Payment Date is required";
     if (!paymentMode) errors.paymentMode = "Payment Mode is required";
 
-    if(!transactionId) errors.transactionId = "Transcation Id is required";
+    if (!modesNotRequiringTransactionId.includes(paymentMode)) {
+      if (!transactionId) errors.transactionId = "Transaction ID is required";
+    }
 
     if (!billingModel) errors.billingModel = "Billing Model is required";
     if (!approvalId) errors.approvalId = "Approval ID is required";
-
-    
 
     if (!invoiceDescription)
       errors.invoiceDescription = "Invoice Description is required";
@@ -71,23 +92,23 @@ export default function CashMemoInvoiceForm({
         billingModel,
         approvalId,
         approvalDocId,
-        invoiceAmount:itemstotalAmount,
+        invoiceAmount: itemstotalAmount,
         invoiceDescription,
         transactionId,
         budgetLeft,
         budgetSpend,
       };
 
-      
+     
       onSubmit(formData);
       // resetForm();
     }
   };
 
   const resetForm = () => {
-    setPaymentDate("");
-    setPaymentMode("");
-    setBillingModel("");
+    setPaymentDate(formatDateDDMMYYYY);
+    setPaymentMode("OmniCardUPI"); // default
+    setBillingModel("Customer Billable Expenses");
     setApprovalId("");
     setApprovalDocId("");
     setInvoiceDate("");
@@ -135,10 +156,10 @@ export default function CashMemoInvoiceForm({
           </select>
         </div>
 
-     
+        {!modesNotRequiringTransactionId.includes(paymentMode) && (
           <div>
             <label className="block mb-1 text-sm font-semibold text-gray-700">
-            Transaction ID
+              Transaction ID
             </label>
             <input
               type="text"
@@ -147,7 +168,7 @@ export default function CashMemoInvoiceForm({
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
           </div>
-       
+        )}
 
         <div>
           <label className="block mb-1 text-sm font-semibold text-gray-700">
@@ -185,7 +206,6 @@ export default function CashMemoInvoiceForm({
             type="text"
             readOnly={true}
             value={itemstotalAmount}
-           
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
           />
         </div>

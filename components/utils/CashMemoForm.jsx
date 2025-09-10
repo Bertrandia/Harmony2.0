@@ -14,7 +14,6 @@ import { db } from "@/firebasedata/config";
 import useHandleGeneratePDF from "../hooks/useHandleGeneratePDF";
 import CashMemoInvoiceForm from "../utils/cashMemoInvoiceForm";
 
-
 const CashMemoForm = ({
   userDetails,
   patron,
@@ -24,15 +23,23 @@ const CashMemoForm = ({
   onCashmemoInvoiceDone,
   selectedVendor,
 }) => {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+  const formatDateDDMMYYYY = `${yyyy}-${mm}-${dd}`;
+
   const [vendorName, setVendorName] = useState("");
   const [file, setFile] = useState(null);
-  const [soldTo, setSoldTo] = useState("");
-  const [invoiceDate, setInvoiceDate] = useState("");
+  const [soldTo, setSoldTo] = useState(
+    patron?.newPatronName || patron?.patronName || ""
+  );
+  const [invoiceDate, setInvoiceDate] = useState(formatDateDDMMYYYY);
   const [formErrors, setFormErrors] = useState({});
   const [items, setItems] = useState([
     {
       itemName: "",
-      itemUnits: "",
+      itemUnits: "Nos",
       itemQuantity: "",
       itemTotal: "",
       itemRate: "",
@@ -78,7 +85,7 @@ const CashMemoForm = ({
       ...items,
       {
         itemName: "",
-        itemUnits: "",
+        itemUnits: "Nos",
         itemQuantity: "",
         itemTotal: "",
         itemRate: "",
@@ -174,7 +181,7 @@ const CashMemoForm = ({
         cashMemoDataForm,
         userDetails?.id
       );
-
+       
       const cashMemoTemplate = {
         invoice: cashMemoPdfUrl || "",
         cashMemoPdf: cashMemoPdfUrl || "",
@@ -197,6 +204,8 @@ const CashMemoForm = ({
 
       const crmCashMemoCol = collection(db, "crmCashMemo");
       const docRef = await addDoc(crmCashMemoCol, cashMemoTemplate);
+
+    
 
       setCashMemoInfo({
         vendorName: cashMemoDataForm.vendorName,
@@ -287,7 +296,7 @@ const CashMemoForm = ({
         invoiceAmount: formData?.invoiceAmount
           ? parseFloat(formData.invoiceAmount).toFixed(2)
           : "0.00",
-        transactionId: formData?.transactionId,
+        transactionId: formData?.transactionId || "",
         createdAt: Timestamp.now(),
         createdBy: userDetails?.email || "",
         isExpenseAdded: false,

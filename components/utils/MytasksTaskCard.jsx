@@ -107,7 +107,7 @@ const MytasksTaskCard = ({ task }) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-2">
               <h3 className="text-lg font-semibold text-card-foreground group-hover:text-primary transition-colors">
-                {task?.taskSubject|| "No Task Input"}
+                {task?.taskSubject || "No Task Input"}
               </h3>
             </div>
             <div className="flex items-center gap-3 mb-2">
@@ -119,21 +119,34 @@ const MytasksTaskCard = ({ task }) => {
             <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                {task?.createdAt && (
-                  <span>
-                    {new Date(
-                      task.createdAt.seconds * 1000
-                    ).toLocaleDateString()}{" "}
-                    •{" "}
-                    {new Date(task.createdAt.seconds * 1000).toLocaleTimeString(
-                      [],
-                      {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    )}
-                  </span>
-                )}
+                Created At:{" "}
+                {task?.createdAt &&
+                  (() => {
+                    const date = new Date(task.createdAt.seconds * 1000);
+                    const dd = String(date.getDate()).padStart(2, "0");
+                    const mm = String(date.getMonth() + 1).padStart(2, "0"); // months are 0-indexed
+                    const yy = String(date.getFullYear()).slice(-2); // last 2 digits of year
+                    const hh = String(date.getHours()).padStart(2, "0");
+                    const min = String(date.getMinutes()).padStart(2, "0");
+                    return `${dd}/${mm}/${yy} • ${hh}:${min}`;
+                  })()}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+              <div className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                Task due Date:{" "}
+                {task?.taskDueDate &&
+                  (() => {
+                    const date = new Date(task.taskDueDate.seconds * 1000);
+                    const dd = String(date.getDate()).padStart(2, "0");
+                    const mm = String(date.getMonth() + 1).padStart(2, "0"); // months are 0-indexed
+                    const yy = String(date.getFullYear()).slice(-2); // last 2 digits of year
+                    const hh = String(date.getHours()).padStart(2, "0");
+                    const min = String(date.getMinutes()).padStart(2, "0");
+                    return `${dd}/${mm}/${yy} • ${hh}:${min}`;
+                  })()}
               </div>
             </div>
 
@@ -149,15 +162,15 @@ const MytasksTaskCard = ({ task }) => {
                 {task.taskStatusCategory}
               </Badge>
               {task?.isCuratorTask && (
-            <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200">
-              Curator Task
-            </Badge>
-          )}
-          {task?.isDelayed && (
-            <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200">
-              Delayed
-            </Badge>
-          )}
+                <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200">
+                  Curator Task
+                </Badge>
+              )}
+              {task?.isDelayed && (
+                <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200">
+                  Delayed
+                </Badge>
+              )}
             </div>
 
             {/* Buttons */}
@@ -199,7 +212,7 @@ const MytasksTaskCard = ({ task }) => {
         </div>
       </div>
     </div>
-   );
+  );
 };
 
 export default MytasksTaskCard;

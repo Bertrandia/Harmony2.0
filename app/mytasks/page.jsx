@@ -22,17 +22,19 @@ function MyTasksPage() {
   const searchParams = useSearchParams();
   const searchparamspatronId = searchParams.get("id");
   const patronFromUrl = lmpatrons.find((p) => p.id === searchparamspatronId);
+  const filterName = searchParams.get("filtername");
 
   const filteredTasks = useMemo(() => {
     return contexttasks.filter((task) => {
-      // ✅ if patronId from URL exists → only show that patron’s tasks
+      // ✅ Patron filter
       if (searchparamspatronId && task?.patronRef?.id !== searchparamspatronId)
         return false;
 
-      // ✅ if patron selected from dropdown → only show their tasks
+      // ✅ Patron dropdown filter
       if (selectedPatron && task?.patronRef?.id !== selectedPatron.id)
         return false;
 
+      // ✅ Search filter
       const matchesSearch =
         (task?.taskInput?.toLowerCase() ?? "").includes(
           searchTerm.toLowerCase()
@@ -41,6 +43,7 @@ function MyTasksPage() {
           searchTerm.toLowerCase()
         );
 
+      // ✅ Status filter
       const matchesStatus =
         filterStatus === "all" ||
         (filterStatus === "Delayed"
@@ -48,9 +51,30 @@ function MyTasksPage() {
           : (task?.taskStatusCategory?.toLowerCase() ?? "") ===
             filterStatus.toLowerCase());
 
+      // ✅ Curator filter
       const matchesCurator = !showCuratorOnly || task?.isCuratorTask === true;
 
-      return matchesSearch && matchesStatus && matchesCurator;
+      // ✅ URL filter → due date is today
+      const matchesUrlFilter =
+        !filterName ||
+        (filterName === "taskduedateistoday" &&
+          (() => {
+            if (!task?.taskDueDate) return false; // 🚫 skip if missing
+            if (typeof task.taskDueDate.toDate !== "function") return false; // 🚫 not a Timestamp
+
+            const dueDate = task.taskDueDate.toDate(); // 🔑 convert Firestore Timestamp → JS Date
+            const today = new Date();
+
+            return (
+              dueDate.getDate() === today.getDate() &&
+              dueDate.getMonth() === today.getMonth() &&
+              dueDate.getFullYear() === today.getFullYear()
+            );
+          })());
+
+      return (
+        matchesSearch && matchesStatus && matchesCurator && matchesUrlFilter
+      );
     });
   }, [
     contexttasks,
@@ -58,8 +82,8 @@ function MyTasksPage() {
     selectedPatron,
     searchTerm,
     filterStatus,
-
     showCuratorOnly,
+    filterName,
   ]);
 
   return (
@@ -70,14 +94,13 @@ function MyTasksPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-foreground">
-                {patronFromUrl ? (
-                  <span className="text-3xl font-bold tracking-tight text-foreground">
-                    {patronFromUrl.newPatronName || patronFromUrl.patronName}
-                  </span>
-                ) : (
-                  "My Tasks"
-                )}
+                {patronFromUrl
+                  ? patronFromUrl.newPatronName || patronFromUrl.patronName
+                  : filterName === "taskduedateistoday"
+                  ? "Tasks Due Today"
+                  : "My Tasks"}
               </h1>
+
               <p className="mt-2 text-muted-foreground">
                 Manage your personal and service requests
               </p>

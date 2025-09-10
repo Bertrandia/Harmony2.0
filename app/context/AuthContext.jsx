@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     let unsubscribeUserDoc = null;
-          console.log("Auth state:");
+
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setAuthLoading(false);
@@ -83,7 +83,13 @@ export const AuthProvider = ({ children }) => {
       userDetailsError,
       logout,
     }),
-    [currentUser, authLoading, userDetails, userDetailsLoading, userDetailsError]
+    [
+      currentUser,
+      authLoading,
+      userDetails,
+      userDetailsLoading,
+      userDetailsError,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
