@@ -178,9 +178,12 @@ const CashMemoForm = ({
       };
 
       const cashMemoPdfUrl = await useHandleGeneratePDF(
+
         cashMemoDataForm,
         userDetails?.id
       );
+
+    
 
       const cashMemoTemplate = {
         invoice: cashMemoPdfUrl || "",

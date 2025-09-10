@@ -44,12 +44,21 @@ export default async function handleGeneratePDF(cashMemoDataForm, userId) {
 
   // === HEADER BAR ===
   const y = 20;
-  const barHeight = 12;
+  const barHeight = 10;
+
   doc.setFillColor("#febd55");
   doc.rect(leftMargin, y, tableWidth, barHeight, "F");
+
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(14);
-  doc.text("Cash Memo", pageWidth / 2, y + 8, { align: "center" });
+  doc.setFontSize(12);
+  doc.setFont(undefined, "bold");
+
+  // Approx vertical centering
+  const textY = y + barHeight / 2 + 1.1; // 3 ≈ half of font size (12pt ≈ 3mm)
+  doc.text("Cash Memo", pageWidth / 2, textY, { align: "center" });
+
+  // Reset for later text
+  doc.setFont(undefined, "normal");
 
   // Reset text color
   doc.setTextColor(0, 0, 0);
@@ -86,11 +95,37 @@ export default async function handleGeneratePDF(cashMemoDataForm, userId) {
     item.itemTotal,
   ]);
 
-  bodyData.push([
-    { content: "", colSpan: 5, styles: { halign: "right" } },
-    { content: "Total", styles: { halign: "right", fontStyle: "bold" } },
-    { content: `${totalAmount}`, styles: { halign: "center", fontStyle: "bold" } },
-  ]);
+ bodyData.push([
+  {
+    content: "", // skip first 5 columns
+    colSpan: 5,
+    styles: { cellPadding: 0, lineWidth: 0, halign: "center" }, // no content, no borders
+  },
+  {
+    content: "Total",
+    styles: {
+      halign: "right",
+      fontStyle: "bold",
+      textColor: [0, 0, 0],
+      lineColor: [0, 0, 0], // border
+      lineWidth: 0.3,
+    },
+  },
+  {
+    content: `${Number(totalAmount).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+    })}`,
+    styles: {
+      halign: "center",
+      fontStyle: "bold",
+      textColor: [0, 0, 0],
+      lineColor: [0, 0, 0], // border
+      lineWidth: 0.3,
+    },
+  },
+]);
+
+
 
   autoTable(doc, {
     startY: yStart + 7,
@@ -98,17 +133,24 @@ export default async function handleGeneratePDF(cashMemoDataForm, userId) {
     tableWidth: tableWidth,
     head: [["S.No", "Item", "Description", "Unit", "Rate", "Qty", "Amount"]],
     body: bodyData,
-    theme: "grid",
-    styles: { fontSize: 9, halign: "center", valign: "middle" },
-    headStyles: { fillColor: "#febd55", textColor: 255, halign: "center" },
-    columnStyles: {
-      0: { halign: "center", cellWidth: 12 },
-      1: { cellWidth: 35 },
-      2: { cellWidth: 45 },
-      3: { halign: "center", cellWidth: 15 },
-      4: { halign: "center", cellWidth: 18 },
-      5: { halign: "center", cellWidth: 15 },
-      6: { halign: "center", cellWidth: 20 },
+    theme: "grid", // ⬅️ important to keep borders
+    styles: {
+      fontSize: 9,
+      halign: "center",
+      valign: "middle",
+      lineColor: [0, 0, 0],
+      lineWidth: 0.3,
+    },
+    headStyles: {
+      fillColor: [252, 200, 114],
+      textColor: [0, 0, 0],
+      halign: "center",
+      lineColor: [0, 0, 0],
+      lineWidth: 0.3,
+      fontStyle: "bold",
+    },
+    bodyStyles: {
+      textColor: [0, 0, 0],
     },
   });
 
@@ -174,6 +216,7 @@ export default async function handleGeneratePDF(cashMemoDataForm, userId) {
   // === Default (Generated PDF only) ===
   const pdfBlob = doc.output("blob");
 
+  // doc.save(`${invoiceNumber}.pdf`);
   // --- Upload to Firebase ---
   return await uploadToFirebase(pdfBlob, userId, invoiceNumber);
 }
