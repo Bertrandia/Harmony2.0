@@ -71,7 +71,12 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = async () => {
-    await signOut(auth);
+    try {
+      await signOut(auth);
+    } finally {
+      setCurrentUser(null);
+      setUserDetails(null); // 👈 force-clear so patrons/tasks reset immediately
+    }
   };
 
   const value = useMemo(

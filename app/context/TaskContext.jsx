@@ -20,13 +20,14 @@ export const TaskProvider = ({ children }) => {
   const { lmpatrons } = useContext(LMPatronContext);
 
   useEffect(() => {
+    setContextTasks([]); // ✅ immediately clear old tasks
+    setTasksLoading(true);
     if (!lmpatrons?.length) {
       setContextTasks([]);
       setTasksLoading(false); // ✅ no patrons, nothing to load
       return;
     }
-
-    setTasksLoading(true); // ✅ start loading when patrons change
+    // ✅ start loading when patrons change
     const unsubscribes = [];
 
     lmpatrons.forEach((patron) => {

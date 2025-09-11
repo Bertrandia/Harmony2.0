@@ -202,13 +202,13 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
         console.error("Document not found after update.");
       }
 
-      setTasks((prev) =>
-        prev.map((task) =>
-          task.id === draggedTask.id
-            ? { ...task, taskStatusCategory: pendingStatusUpdate }
-            : task
-        )
-      );
+      // setTasks((prev) =>
+      //   prev.map((task) =>
+      //     task.id === draggedTask.id
+      //       ? { ...task, taskStatusCategory: pendingStatusUpdate }
+      //       : task
+      //   )
+      // );
       setDraggedTask(null);
       setPendingStatusUpdate(null);
       setShowNoteModal(false);
@@ -373,11 +373,11 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
 
         const docRef = doc(db, "createTaskCollection", draggedTask.id);
         await updateDoc(docRef, enrichedFormData);
-        setTasks((prev) =>
-          prev.map((task) =>
-            task.id === draggedTask.id ? { ...task, ...enrichedFormData } : task
-          )
-        );
+        // setTasks((prev) =>
+        //   prev.map((task) =>
+        //     task.id === draggedTask.id ? { ...task, ...enrichedFormData } : task
+        //   )
+        // );
         setSubmissionStatus((prev) => ({ ...prev, [index]: "success" }));
         markFirstSubmitted?.();
       } else {
@@ -391,7 +391,7 @@ function DashboardContent({ userDetails, contexttasks, tasksLoading }) {
           collection(db, "createTaskCollection"),
           newTaskData
         );
-        setTasks((prev) => [...prev, { id: docRef.id, ...newTaskData }]);
+        // setTasks((prev) => [...prev, { id: docRef.id, ...newTaskData }]);
         setSubmissionStatus((prev) => ({ ...prev, [index]: "success" }));
       }
     } catch (error) {

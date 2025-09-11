@@ -15,7 +15,7 @@ const { currentUser, authLoading } = useAuth();
     if (!authLoading && !currentUser) {
      
      
-        router.replace('/loginmessage');
+          router.replace('/');
       
     }
   }, [currentUser, authLoading]);

@@ -554,12 +554,14 @@ const Page = () => {
             <h2 className="text-lg font-semibold mb-4">
               Create Task for {taskPatron?.patronName}
             </h2>
-            <Input
+            <textarea
               placeholder="Enter Task Input"
               value={taskInput}
               onChange={(e) => setTaskInput(e.target.value)}
-              className="mb-2"
+              rows={4}
+              className="w-full mb-2 rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 resize-y"
             />
+
             {taskError && (
               <p className="text-red-600 text-sm mb-3">{taskError}</p>
             )}

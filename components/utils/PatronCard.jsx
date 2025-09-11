@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Phone, MapPin, User, MoreHorizontal } from "lucide-react";
+import { Phone, MapPin, User, MoreHorizontal, Home } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -13,20 +13,19 @@ const PatronCard = ({
 }) => {
   const [imgError, setImgError] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // Toggle menu
-  
 
   if (!patrondata) return null;
   const patronAddress = [
-  patrondata?.addressLine1,
-  patrondata?.addressLine2,
-  patrondata?.city,
-  patrondata?.state,
-  patrondata?.pinCode,
-  patrondata?.country,
-]
-  .filter(Boolean) // Remove null/undefined/empty
-  .join(", ");
- 
+    patrondata?.addressLine1,
+    patrondata?.addressLine2,
+    patrondata?.city,
+    patrondata?.state,
+    patrondata?.pinCode,
+    patrondata?.country,
+  ]
+    .filter(Boolean) // Remove null/undefined/empty
+    .join(", ");
+
   const {
     patronName,
     assignedLM,
@@ -98,9 +97,6 @@ const PatronCard = ({
             <p className="text-sm text-muted-foreground">
               {email || "No email"}
             </p>
-            <p className="text-sm text-muted-foreground">
-              {patronAddress || "No Address"}
-            </p>
           </div>
         </div>
 
@@ -124,7 +120,16 @@ const PatronCard = ({
                   setMenuOpen(false);
                 }}
               >
-                Create Task
+                Create Task - Manual
+              </button>
+              <button
+                className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                onClick={() => {
+                  handelCreateTask?.(patrondata);
+                  setMenuOpen(false);
+                }}
+              >
+                Create Task - WA Chat Text
               </button>
               <button
                 className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
@@ -133,7 +138,7 @@ const PatronCard = ({
                   setMenuOpen(false);
                 }}
               >
-                Create Task with image
+                Create Task - WA Image
               </button>
               <button
                 className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
@@ -168,6 +173,13 @@ const PatronCard = ({
           <MapPin className="w-4 h-4" />
           <span>{city || "No address"}</span>
         </div>
+        <div className="flex items-start gap-2">
+          <Home className="w-4 h-4 shrink-0 mt-0.5" />
+          <span className="break-all whitespace-normal flex-1">
+            {patronAddress|| "No Address"}
+          </span>
+        </div>
+
         <div className="flex items-center gap-2">
           <User className="w-4 h-4" />
           <span>LM: {assignedLM || "Unassigned"}</span>
@@ -207,7 +219,17 @@ const PatronCard = ({
         shadow-md hover:from-gray-600 hover:to-gray-400 
         active:scale-95 transition-all duration-200"
           >
-            Create Task
+            Create Task - Manual
+          </button>
+
+          <button
+            onClick={() => handelCreateTask?.(patrondata)}
+            className="px-3 py-1 text-sm font-medium rounded-lg 
+        bg-gradient-to-r from-gray-700 to-gray-500 text-white 
+        shadow-md hover:from-gray-600 hover:to-gray-400 
+        active:scale-95 transition-all duration-200"
+          >
+            Create Task - WA Chat Text
           </button>
 
           <button
@@ -217,7 +239,7 @@ const PatronCard = ({
         shadow-md hover:from-gray-600 hover:to-gray-400 
         active:scale-95 transition-all duration-200"
           >
-            Create Task with Image
+            Create Task - WA Image
           </button>
 
           <button
