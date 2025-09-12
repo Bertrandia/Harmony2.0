@@ -5,6 +5,10 @@ import { Timestamp } from "firebase/firestore";
 import ApprovalDropdown from "../utils/ApprovalDropdown";
 import CustomDropdown from "../utils/CustomDropdown";
 import { useRouter } from "next/navigation";
+import { useExtractInvoiceNumber } from "../../components/hooks/useExtractInvoiceNumber";
+import { gapi } from "../../components/constants";
+import axios from "axios";
+import { Loader2 } from "lucide-react";
 
 const InvoiceForm = ({
   hideInvoiceFields,
@@ -15,6 +19,12 @@ const InvoiceForm = ({
   invoiceLoading,
 }) => {
   const router = useRouter();
+  const {
+    loading,
+    error,
+
+    extractInvoiceNumber,
+  } = useExtractInvoiceNumber(gapi);
   const today = new Date();
   const yyyy = today.getFullYear();
   const mm = String(today.getMonth() + 1).padStart(2, "0");
@@ -36,6 +46,9 @@ const InvoiceForm = ({
   const [transactionId, setTransactionId] = useState("");
   const [formErrors, setFormErrors] = useState({});
   const fileNameRef = useRef(null);
+  const [invoiceMsg, setInvoiceMsg] = useState("");
+  const [invoiceExtractionLoading, setInvoiceExtractionLoading] =
+    useState(false);
 
   const modesNotRequiringTransactionId = [
     "OTS",
@@ -52,11 +65,82 @@ const InvoiceForm = ({
     resetForm();
   }, [hideInvoiceFields]);
 
-   useEffect(() => {
+  useEffect(() => {
     if (success) {
       router.push("/mytasks");
     }
   }, [success, router]);
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file){
+    setInvoiceFile(null)
+    setInvoiceNumber("")
+     return;
+    } 
+
+    setInvoiceFile(file);
+
+    const extension = file.name.split(".").pop().toLowerCase();
+
+    let base64String = "";
+    let extractedText = "";
+
+    try {
+      // 🖼️ IMAGE branch
+      setInvoiceExtractionLoading(true);
+      if (["jpg", "jpeg", "png", "gif", "webp"].includes(extension)) {
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = "";
+        bytes.forEach((b) => (binary += String.fromCharCode(b)));
+        base64String = btoa(binary);
+      }
+
+      // 📄 PDF branch
+      else if (extension === "pdf") {
+        const formDataPDF = new FormData();
+        formDataPDF.append("file", file);
+
+        const response = await axios.post(
+          "https://pdf-to-text-api-632406467525.us-central1.run.app/extract-text",
+          formDataPDF,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+
+        if (response.status === 200) {
+          extractedText = response.data?.text || "";
+        } else {
+          console.warn("⚠️ PDF extraction failed:", response.statusText);
+        }
+      } else {
+        console.warn("Unsupported file type:", extension);
+      }
+
+      // Save results to state
+      const extractedInvoiceNumber = await extractInvoiceNumber({
+        base64Image: base64String || undefined,
+        pdfText: extractedText || undefined,
+      });
+
+      if (extractInvoiceNumber) {
+        setInvoiceNumber(extractedInvoiceNumber);
+        setInvoiceMsg(
+          "Invoice number was extracted by AI — please check before submitting."
+        );
+      } else {
+        setInvoiceMsg(
+          "Couldn’t extract an invoice number. Please upload a clear image/PDF or fill it manually."
+        );
+      }
+    } catch (error) {
+      setInvoiceMsg(
+        "Couldn’t extract an invoice number. Please upload a clear image/PDF or fill it manually."
+      );
+    } finally {
+      setInvoiceExtractionLoading(false);
+    }
+  };
 
   const handleSubmit = () => {
     const errors = {};
@@ -130,6 +214,7 @@ const InvoiceForm = ({
       };
 
       onSubmit(formData);
+      // console.log(formData);
     }
   };
 
@@ -146,6 +231,7 @@ const InvoiceForm = ({
     setInvoiceDescription("");
     setTransactionId("");
     setFormErrors({});
+    setInvoiceMsg("");
     if (fileNameRef.current) {
       fileNameRef.current.value = ""; // clears the UI filename
     }
@@ -173,6 +259,28 @@ const InvoiceForm = ({
           Invoice Details
         </h2>
       </div>
+
+      {!hideInvoiceFields && (
+        <>
+          <div className="w-full mb-3">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Upload Invoice (PDF/Image)
+            </label>
+            <input
+              ref={fileNameRef}
+              type="file"
+              accept="application/pdf,image/*"
+              onChange={handleFileSelect}
+              className="w-full px-5 py-3 bg-white border-2 border-dashed border-gray-300 rounded-xl 
+                         focus:ring-4 focus:ring-blue-100 focus:border-blue-500 
+                         text-gray-700 hover:border-blue-300 file:mr-4 file:py-2 file:px-4 
+                         file:rounded-lg file:border-0 file:text-sm file:font-medium 
+                         file:bg-blue-50 file:text-gray-700 hover:file:bg-blue-100"
+            />
+
+          </div>
+        </>
+      )}
 
       {/* Form Grid - Horizontal Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
@@ -274,7 +382,7 @@ const InvoiceForm = ({
         {/* Invoice Fields (if not hidden) */}
         {!hideInvoiceFields && (
           <>
-            <div className="w-full">
+            <div className="w-full relative">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Invoice Number
               </label>
@@ -282,11 +390,17 @@ const InvoiceForm = ({
                 type="text"
                 value={invoiceNumber}
                 onChange={(e) => setInvoiceNumber(e.target.value)}
+                disabled={invoiceExtractionLoading}
                 placeholder="Enter invoice number"
-                className="w-full px-5 py-3 bg-white border-2 border-gray-200 rounded-xl 
-                         focus:ring-4 focus:ring-blue-100 focus:border-blue-500 
-                         text-gray-700 shadow-sm hover:border-blue-300"
+                className="w-full px-5 py-3 pr-12 bg-white border-2 border-gray-200 rounded-xl 
+               focus:ring-4 focus:ring-blue-100 focus:border-blue-500 
+               text-gray-700 shadow-sm hover:border-blue-300"
               />
+              {invoiceExtractionLoading && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <Loader2 className="animate-spin h-5 w-5 text-blue-600" />
+                </div>
+              )}
             </div>
 
             <div className="w-full">
@@ -300,23 +414,6 @@ const InvoiceForm = ({
                 className="w-full px-5 py-3 bg-white border-2 border-gray-200 rounded-xl 
                          focus:ring-4 focus:ring-blue-100 focus:border-blue-500 
                          text-gray-700 shadow-sm hover:border-blue-300"
-              />
-            </div>
-
-            <div className="w-full">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Upload Invoice (PDF/Image)
-              </label>
-              <input
-                ref={fileNameRef}
-                type="file"
-                accept="application/pdf,image/*"
-                onChange={(e) => setInvoiceFile(e.target.files[0])}
-                className="w-full px-5 py-3 bg-white border-2 border-dashed border-gray-300 rounded-xl 
-                         focus:ring-4 focus:ring-blue-100 focus:border-blue-500 
-                         text-gray-700 hover:border-blue-300 file:mr-4 file:py-2 file:px-4 
-                         file:rounded-lg file:border-0 file:text-sm file:font-medium 
-                         file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
             </div>
           </>

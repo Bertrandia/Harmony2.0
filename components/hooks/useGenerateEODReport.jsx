@@ -229,10 +229,10 @@ export function useGenerateEODReport() {
     drawFooter();
 
     // === SAVE PDF ===
-    const todayFile = new Date().toISOString().slice(0, 10);
-    const fileSafeName =
-      patron?.patronName?.replace?.(/[^\w\-]+/g, "_") || "Patron";
-    doc.save(`EOD_${fileSafeName}_${todayFile}.pdf`);
+    const pdfBlob = doc.output("blob");
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+
+    return { blob: pdfBlob, url: pdfUrl };
   };
 
   return { generateEODReport };

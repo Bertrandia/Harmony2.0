@@ -53,7 +53,9 @@ const Page = () => {
   const [taskInput, setTaskInput] = useState("");
   const [taskPatron, setTaskPatron] = useState(null);
   const [taskError, setTaskError] = useState("");
-  const [taskImage, setTaskImage] = useState(null); // <-- NEW STATE for error
+  const [taskImage, setTaskImage] = useState(null);
+
+  const [pdfUrl, setPdfUrl] = useState(null); // <-- NEW STATE for error
 
   function generateTaskId(taskCategory, patronName, subCategory) {
     // --- Patron Name Code ---
@@ -308,7 +310,9 @@ const Page = () => {
       summary.todaysExpense = todaysExpense;
     }
 
-    generateEODReport(summary, tasks, selectedPatron);
+    const { url } = await generateEODReport(summary, tasks, selectedPatron);
+
+    setPdfUrl(url);
     setShowModal(false);
   };
 
@@ -546,6 +550,51 @@ const Page = () => {
         onConfirm={handleConfirmGenerate}
         patron={selectedPatron}
       />
+
+      {pdfUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white w-full max-w-5xl h-[80vh] rounded-lg shadow-lg flex flex-col">
+            {/* Header */}
+            <div className="flex justify-between items-center p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold">EOD PDF Preview of {selectedPatron.patronName}</h2>
+              <button
+                onClick={() => setPdfUrl(null)}
+                className="text-gray-500 hover:text-gray-800 font-bold text-xl"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* PDF iframe */}
+            <div className="flex-1 overflow-hidden">
+              <iframe
+                src={pdfUrl}
+                width="100%"
+                height="100%"
+                title="PDF Preview"
+              />
+            </div>
+
+            {/* Footer actions */}
+            <div className="flex justify-end gap-2 p-4 border-t border-gray-200">
+              <a
+                href={pdfUrl}
+                download={`EOD_${selectedPatron?.patronName || "Patron"}.pdf`}
+              >
+                <button className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                  Download PDF
+                </button>
+              </a>
+              <button
+                onClick={() => setPdfUrl(null)}
+                className="px-4 py-2 border rounded hover:bg-gray-100"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Task Popup */}
       {showTaskPopup && (

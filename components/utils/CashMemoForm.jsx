@@ -22,6 +22,7 @@ const CashMemoForm = ({
   onRefreshApprovals,
   onCashmemoInvoiceDone,
   selectedVendor,
+  onSubmissionSuccess,
 }) => {
   const today = new Date();
   const yyyy = today.getFullYear();
@@ -178,12 +179,9 @@ const CashMemoForm = ({
       };
 
       const cashMemoPdfUrl = await useHandleGeneratePDF(
-
         cashMemoDataForm,
         userDetails?.id
       );
-
-    
 
       const cashMemoTemplate = {
         invoice: cashMemoPdfUrl || "",
@@ -218,6 +216,9 @@ const CashMemoForm = ({
       });
 
       setSuccess(true);
+      if (onSubmissionSuccess) {
+        onSubmissionSuccess();
+      }
     } catch (error) {
       console.error("❌ Error while submitting Cash Memo:", error);
       alert("Something went wrong. Please try again.");

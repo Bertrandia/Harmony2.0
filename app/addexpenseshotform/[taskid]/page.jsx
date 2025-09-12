@@ -40,6 +40,7 @@ const addexpensesPage = () => {
   const [invoiceSuccess, setInvoiceSuccess] = useState(false);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [invoiceDropdownOpen, setInvoiceDropdownOpen] = useState(false);
+  const [hideCashMemoContent, setHideCashMemoContent] = useState(false);
 
   const fetchTaskAndPatron = async () => {
     try {
@@ -54,9 +55,15 @@ const addexpensesPage = () => {
             setPatron({ id: patronSnap.id, ...patronSnap.data() });
           }
 
+          // const financeQuery = query(
+          //   collection(db, "advanceApprovalFinance"),
+          //   where("patronRef", "==", taskData.patronRef)
+          // );
+
           const financeQuery = query(
             collection(db, "advanceApprovalFinance"),
-            where("patronRef", "==", taskData.patronRef)
+            where("patronRef", "==", taskData.patronRef),
+            where("approvalStatus", "==", "Approved") // <-- added condition
           );
 
           const financeSnapshot = await getDocs(financeQuery);
@@ -510,20 +517,22 @@ const addexpensesPage = () => {
       {/* Cash Memo Option */}
       {selectedVendor && isInvoiceAvailable === "cash-memo" && (
         <div className="p-6 rounded-2xl border-2 border-amber-100 bg-gradient-to-br from-amber-50 via-yellow-50 to-white shadow-inner">
-          <label className="flex items-center space-x-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isCashMemoConfirmed}
-              onChange={(e) => setIsCashMemoConfirmed(e.target.checked)}
-              className="w-5 h-5 text-amber-500 border-gray-300 rounded focus:ring-amber-400"
-            />
-            <span className="text-gray-700">
-              I confirm that this expense does not have any official supporting
-              bill/invoice, and it is not from listed vendors such as Amazon,
-              Blinkit, etc. I acknowledge and accept this cash memo as valid for
-              record purposes.
-            </span>
-          </label>
+          {!hideCashMemoContent && (
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isCashMemoConfirmed}
+                onChange={(e) => setIsCashMemoConfirmed(e.target.checked)}
+                className="w-5 h-5 text-amber-500 border-gray-300 rounded focus:ring-amber-400"
+              />
+              <span className="text-gray-700">
+                I confirm that this expense does not have any official
+                supporting bill/invoice, and it is not from listed vendors such
+                as Amazon, Blinkit, etc. I acknowledge and accept this cash memo
+                as valid for record purposes.
+              </span>
+            </label>
+          )}
 
           {isCashMemoConfirmed && (
             <div className="mt-6">
@@ -540,6 +549,7 @@ const addexpensesPage = () => {
                   setSearchQuery("");
                   setIsInvoiceAvailable("");
                 }}
+                onSubmissionSuccess={() => setHideCashMemoContent(true)}
               />
             </div>
           )}
